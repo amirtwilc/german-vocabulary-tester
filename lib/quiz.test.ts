@@ -72,4 +72,12 @@ describe('quiz generation', () => {
     expect(quiz.find((question) => question.id === 'auf-movement')?.correctAnswer).toBe('Akkusativ');
     expect(quiz.find((question) => question.id === 'auf-location')?.correctAnswer).toBe('Dativ');
   });
+
+  it('shuffles the two halves of a two-way preposition independently', () => {
+    const mixedPrepositions = { nouns: [], verbs: [], prepositions: [{ id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' }, { id: 'durch', german: 'durch', usage: 'fixed', case: 'Akkusativ' }, { id: 'vor', german: 'vor', usage: 'two-way' }] } satisfies Vocabulary;
+    const quiz = createQuiz(mixedPrepositions, 4, () => 0.5);
+    const movementIndex = quiz.findIndex((question) => question.id === 'vor-movement');
+    const locationIndex = quiz.findIndex((question) => question.id === 'vor-location');
+    expect(Math.abs(movementIndex - locationIndex)).toBeGreaterThan(1);
+  });
 });

@@ -136,6 +136,20 @@ export default function Home() {
     }, 1000);
   }, [answers, locked, questionIndex, questions]);
 
+  useEffect(() => {
+    const current = questions[questionIndex];
+    if (screen !== 'quiz' || locked || exitDialogOpen || current?.mode !== 'choice') return;
+    const handleNumberKey = (event: KeyboardEvent) => {
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !['1', '2', '3', '4'].includes(event.key)) return;
+      const option = current.options?.[Number(event.key) - 1];
+      if (!option) return;
+      event.preventDefault();
+      submitAnswer(option);
+    };
+    window.addEventListener('keydown', handleNumberKey);
+    return () => window.removeEventListener('keydown', handleNumberKey);
+  }, [exitDialogOpen, locked, questionIndex, questions, screen, submitAnswer]);
+
   const handleTextSubmit = (event: SyntheticEvent<HTMLFormElement>) => { event.preventDefault(); submitAnswer(answer); };
 
   const editAtCursor = (character: string) => {
@@ -247,10 +261,10 @@ export default function Home() {
         <div className="question-eyebrow">{current.eyebrow}</div>
         <h1 id="question-heading">{current.prompt}</h1>
         {current.mode === 'choice' ? <div className="choice-grid">
-          {current.options?.map((option) => {
+          {current.options?.map((option, optionIndex) => {
             const selected = answer === option;
             const revealCorrect = locked && option === current.correctAnswer;
-            return <button key={option} disabled={locked} className={`choice-button ${selected ? 'selected' : ''} ${revealCorrect ? 'choice-correct' : ''} ${locked && selected && !feedback ? 'choice-wrong' : ''}`} onClick={() => submitAnswer(option)}><span>{option}</span>{revealCorrect && <CheckCircle2 size={20} />}{locked && selected && !feedback && <XCircle size={20} />}</button>;
+            return <button key={option} disabled={locked} className={`choice-button ${selected ? 'selected' : ''} ${revealCorrect ? 'choice-correct' : ''} ${locked && selected && !feedback ? 'choice-wrong' : ''}`} onClick={() => submitAnswer(option)}><span className="choice-content"><span className="choice-number" aria-hidden="true">{optionIndex + 1}</span><span>{option}</span></span>{revealCorrect && <CheckCircle2 size={20} />}{locked && selected && !feedback && <XCircle size={20} />}</button>;
           })}
         </div> : <form onSubmit={handleTextSubmit} className="answer-form">
           <label htmlFor="written-answer">Your answer</label>

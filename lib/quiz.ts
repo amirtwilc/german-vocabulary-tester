@@ -74,12 +74,12 @@ const verbFactCount = (verb: Verb) => Object.keys(verb.present ?? {}).length + O
 export const getMaximumQuestionCount = (source: Vocabulary) => source.nouns.length * 3 + source.verbs.reduce((sum, verb) => sum + 1 + Math.min(3, verbFactCount(verb)), 0) + source.prepositions.reduce((sum, preposition) => sum + (preposition.usage === 'two-way' ? 2 : 1), 0);
 
 export const createQuiz = (source: Vocabulary, amount: number, random: () => number = Math.random): QuizQuestion[] => {
-  const words = shuffle([
-    ...source.nouns.map((noun) => ({ type: 'noun' as const, value: noun })),
-    ...source.verbs.map((verb) => ({ type: 'verb' as const, value: verb })),
-    ...source.prepositions.map((preposition) => ({ type: 'preposition' as const, value: preposition })),
+  const blocks = shuffle([
+    ...source.nouns.map((noun) => nounBlock(noun, source.nouns, random)),
+    ...source.verbs.map((verb) => verbBlock(verb, source.verbs, random)),
+    ...source.prepositions.flatMap((preposition) => prepositionBlock(preposition, random).map((question) => [question])),
   ], random);
-  const questions = words.flatMap((entry) => entry.type === 'noun' ? nounBlock(entry.value, source.nouns, random) : entry.type === 'verb' ? verbBlock(entry.value, source.verbs, random) : prepositionBlock(entry.value, random));
+  const questions = blocks.flat();
   return questions.slice(0, Math.max(0, Math.min(Math.floor(amount), questions.length)));
 };
 

@@ -31,14 +31,27 @@ describe('quiz interface', () => {
     expect(screen.getByText(/Question 1/)).toBeInTheDocument();
   });
 
+  it('maps number keys to the visible multiple-choice order', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Home />);
+    await user.click(screen.getByTestId('start-quiz'));
+    const choices = [...container.querySelectorAll<HTMLButtonElement>('.choice-button')];
+    expect(choices.length).toBeGreaterThanOrEqual(2);
+    expect(choices.length).toBeLessThanOrEqual(4);
+    expect(choices.map((choice) => choice.querySelector('.choice-number')?.textContent)).toEqual(['1', '2', '3', '4'].slice(0, choices.length));
+    fireEvent.keyDown(window, { key: '1' });
+    expect(choices[0]).toHaveClass('selected');
+    expect(choices.every((choice) => choice.disabled)).toBe(true);
+  });
+
   it('prevents an empty written answer and supports the German keypad', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);
-    render(<Home />);
+    const { container } = render(<Home />);
     fireEvent.click(screen.getByTestId('start-quiz'));
-    fireEvent.click(screen.getAllByRole('button').find((button) => button.textContent === 'newspaper')!);
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.choice-button')!);
     await act(async () => vi.advanceTimersByTime(1000));
-    fireEvent.click(screen.getByRole('button', { name: 'die' }));
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.choice-button')!);
     await act(async () => vi.advanceTimersByTime(1000));
     const input = screen.getByLabelText('Your answer');
     fireEvent.submit(input.closest('form')!);
