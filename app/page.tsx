@@ -1,12 +1,13 @@
 'use client';
 
-import { type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, Languages, RotateCcw, X, XCircle } from 'lucide-react';
+import { type ChangeEvent, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, Download, FileSpreadsheet, Languages, Pencil, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { vocabulary } from '@/data/vocabulary';
+import { collectionWordCount, loadCollections, MAX_CSV_BYTES, mergeVocabularies, parseVocabularyCsv, saveCollections, vocabularyTemplateCsv, vocabularyToCsv, type VocabularyCollection } from '@/lib/collections';
 import { createQuiz, getMaximumQuestionCount, isCorrectAnswer, type QuizQuestion } from '@/lib/quiz';
 
 declare global {
@@ -17,6 +18,7 @@ declare global {
 
 type Screen = 'setup' | 'quiz' | 'results';
 interface AnswerRecord { question: QuizQuestion; answer: string; correct: boolean }
+interface ImportMessage { kind: 'success' | 'error'; title: string; details?: string[] }
 
 const formatTime = (milliseconds: number) => {
   const seconds = Math.floor(milliseconds / 1000);
@@ -30,10 +32,26 @@ function BrandMark() {
 }
 
 export default function Home() {
-  const maximum = useMemo(() => getMaximumQuestionCount(vocabulary), []);
+  const [collections, setCollections] = useState<VocabularyCollection[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(['default']);
+  const [collectionName, setCollectionName] = useState('');
+  const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [importMessage, setImportMessage] = useState<ImportMessage | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const replacingCollectionId = useRef<string | null>(null);
+  const merged = useMemo(() => mergeVocabularies([
+    ...(selectedCollectionIds.includes('default') ? [{ id: 'default', vocabulary }] : []),
+    ...collections.filter((collection) => selectedCollectionIds.includes(collection.id)).map((collection) => ({ id: collection.id, vocabulary: collection.vocabulary })),
+  ]), [collections, selectedCollectionIds]);
+  const activeVocabulary = merged.vocabulary;
+  const maximum = useMemo(() => getMaximumQuestionCount(activeVocabulary), [activeVocabulary]);
   const defaultAmount = Math.min(20, maximum);
   const [screen, setScreen] = useState<Screen>('setup');
   const [amount, setAmount] = useState(defaultAmount);
+  const quizAmount = maximum > 0 ? Math.max(1, Math.min(amount, maximum)) : 0;
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState('');
@@ -48,9 +66,18 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const saved = loadCollections();
+      setCollections(saved);
+      setSelectedCollectionIds(['default', ...saved.map((collection) => collection.id)]);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const startQuiz = useCallback((requestedAmount = amount) => {
     const safeAmount = Math.max(1, Math.min(maximum, Math.floor(requestedAmount)));
-    const nextQuestions = createQuiz(vocabulary, safeAmount);
+    const nextQuestions = createQuiz(activeVocabulary, safeAmount);
     if (!nextQuestions.length) return false;
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     setAmount(safeAmount);
@@ -67,7 +94,98 @@ export default function Home() {
     setElapsed(0);
     setScreen('quiz');
     return true;
-  }, [amount, maximum]);
+  }, [activeVocabulary, amount, maximum]);
+
+  const updateCollections = (next: VocabularyCollection[]) => {
+    setCollections(next);
+    saveCollections(next);
+  };
+
+  const downloadCsv = (filename: string, contents: string) => {
+    const url = URL.createObjectURL(new Blob([contents], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const toggleCollection = (id: string) => {
+    setSelectedCollectionIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
+
+  const readCsvFile = async (file: File, replacingId?: string) => {
+    if (!file.name.toLocaleLowerCase().endsWith('.csv')) {
+      setImportMessage({ kind: 'error', title: 'Choose a CSV file.', details: ['The file name must end in .csv.'] });
+      return;
+    }
+    if (file.size > MAX_CSV_BYTES) {
+      setImportMessage({ kind: 'error', title: 'This CSV is too large.', details: ['The maximum file size is 2 MB.'] });
+      return;
+    }
+    const result = parseVocabularyCsv(await file.text());
+    if (!result.vocabulary) {
+      setImportMessage({ kind: 'error', title: 'This CSV could not be imported.', details: result.errors.slice(0, 8) });
+      return;
+    }
+    const now = new Date().toISOString();
+    if (replacingId) {
+      const current = collections.find((collection) => collection.id === replacingId);
+      if (!current) return;
+      updateCollections(collections.map((collection) => collection.id === replacingId ? { ...collection, vocabulary: result.vocabulary!, updatedAt: now } : collection));
+      setImportMessage({ kind: 'success', title: `“${current.name}” was replaced with ${result.wordCount} valid ${result.wordCount === 1 ? 'word' : 'words'}.` });
+      return;
+    }
+    const name = collectionName.trim();
+    if (!name) {
+      setImportMessage({ kind: 'error', title: 'Give this collection a name before uploading.' });
+      return;
+    }
+    if (collections.some((collection) => collection.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      setImportMessage({ kind: 'error', title: 'A collection with that name already exists.' });
+      return;
+    }
+    const id = `collection-${crypto.randomUUID()}`;
+    const next = [...collections, { id, name, vocabulary: result.vocabulary, createdAt: now, updatedAt: now }];
+    updateCollections(next);
+    setSelectedCollectionIds((current) => [...current, id]);
+    setCollectionName('');
+    setImportMessage({ kind: 'success', title: `“${name}” was added with ${result.wordCount} valid ${result.wordCount === 1 ? 'word' : 'words'}.` });
+  };
+
+  const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) await readCsvFile(file);
+  };
+
+  const handleReplace = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const id = replacingCollectionId.current;
+    event.target.value = '';
+    replacingCollectionId.current = null;
+    if (file && id) await readCsvFile(file, id);
+  };
+
+  const removeCollection = (id: string) => {
+    const collection = collections.find((item) => item.id === id);
+    if (!collection) return;
+    updateCollections(collections.filter((item) => item.id !== id));
+    setSelectedCollectionIds((current) => current.filter((item) => item !== id));
+    setPendingDeleteId(null);
+    setImportMessage({ kind: 'success', title: `“${collection.name}” was removed.` });
+  };
+
+  const saveCollectionName = (id: string) => {
+    const name = editingName.trim();
+    if (!name || collections.some((collection) => collection.id !== id && collection.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      setImportMessage({ kind: 'error', title: !name ? 'Collection names cannot be empty.' : 'A collection with that name already exists.' });
+      return;
+    }
+    updateCollections(collections.map((collection) => collection.id === id ? { ...collection, name, updatedAt: new Date().toISOString() } : collection));
+    setEditingCollectionId(null);
+    setImportMessage({ kind: 'success', title: `Collection renamed to “${name}”.` });
+  };
 
   useEffect(() => {
     if (screen !== 'quiz' || locked || exitDialogOpen) return;
@@ -194,15 +312,60 @@ export default function Home() {
           <div className="eyebrow"><Languages size={16} /> German vocabulary</div>
           <h1 id="page-title">Wort für Wort</h1>
           <p className="lede">A focused quiz for the words you’re learning.</p>
+          <section className="collections-panel" aria-labelledby="collections-heading">
+            <div className="collections-heading-row">
+              <div><h2 id="collections-heading">Quiz collections</h2><p>Choose one or more sources for this quiz.</p></div>
+              <button className="csv-link" type="button" onClick={() => downloadCsv('wort-fuer-wort-template.csv', vocabularyTemplateCsv())}><Download size={15} /> Template</button>
+            </div>
+            <div className="collection-list">
+              <div className="collection-row">
+                <label className="collection-choice" aria-label="Use default collection"><input type="checkbox" checked={selectedCollectionIds.includes('default')} onChange={() => toggleCollection('default')} /><span><strong>Default collection</strong><small>{collectionWordCount(vocabulary)} words · read-only</small></span></label>
+                <button className="icon-action" type="button" aria-label="Download default collection" title="Download default collection" onClick={() => downloadCsv('wort-fuer-wort-default.csv', vocabularyToCsv(vocabulary))}><Download size={17} /></button>
+              </div>
+              {collections.map((collection) => <div className="collection-row custom-collection" key={collection.id}>
+                {editingCollectionId === collection.id ? <form className="rename-form" onSubmit={(event) => { event.preventDefault(); saveCollectionName(collection.id); }}>
+                  <input aria-label="Collection name" value={editingName} onChange={(event) => setEditingName(event.target.value)} />
+                  <button type="submit">Save</button><button type="button" onClick={() => setEditingCollectionId(null)}>Cancel</button>
+                </form> : <>
+                  <label className="collection-choice" aria-label={`Use ${collection.name}`}><input type="checkbox" checked={selectedCollectionIds.includes(collection.id)} onChange={() => toggleCollection(collection.id)} /><span><strong>{collection.name}</strong><small>{collectionWordCount(collection.vocabulary)} words</small></span></label>
+                  <div className="collection-actions">
+                    <button className="icon-action" type="button" aria-label={`Download ${collection.name}`} title="Download CSV" onClick={() => downloadCsv(`${collection.name.toLocaleLowerCase().replace(/[^a-z0-9]+/g, '-') || 'vocabulary'}.csv`, vocabularyToCsv(collection.vocabulary))}><Download size={16} /></button>
+                    <button className="icon-action" type="button" aria-label={`Rename ${collection.name}`} title="Rename" onClick={() => { setEditingCollectionId(collection.id); setEditingName(collection.name); setImportMessage(null); }}><Pencil size={16} /></button>
+                    <button className="icon-action" type="button" aria-label={`Replace ${collection.name} from CSV`} title="Replace from CSV" onClick={() => { replacingCollectionId.current = collection.id; replaceInputRef.current?.click(); }}><Upload size={16} /></button>
+                    <button className="icon-action destructive-action" type="button" aria-label={`Remove ${collection.name}`} title="Remove" onClick={() => setPendingDeleteId(collection.id)}><Trash2 size={16} /></button>
+                  </div>
+                </>}
+              </div>)}
+            </div>
+            <input ref={replaceInputRef} className="visually-hidden" type="file" accept=".csv,text/csv" onChange={handleReplace} />
+            <div className="csv-import-box">
+              <FileSpreadsheet size={20} aria-hidden="true" />
+              <div><strong>Add a collection from CSV</strong><p>Download the template, replace its example rows, then upload it here. Your collections stay saved in this browser. Export a copy if you want to move them to another device.</p></div>
+              <label className="collection-name-label">Collection name<input value={collectionName} maxLength={60} placeholder="e.g. Chapter 4" onChange={(event) => { setCollectionName(event.target.value); setImportMessage(null); }} /></label>
+              <input ref={importInputRef} className="visually-hidden" type="file" accept=".csv,text/csv" onChange={handleImport} />
+              <Button type="button" variant="outline" className="upload-button" onClick={() => importInputRef.current?.click()}><Upload size={16} /> Choose CSV file</Button>
+            </div>
+            {importMessage && <div className={`import-message ${importMessage.kind}`} role={importMessage.kind === 'error' ? 'alert' : 'status'}>
+              <strong>{importMessage.kind === 'success' ? <CheckCircle2 size={17} /> : <XCircle size={17} />}{importMessage.title}</strong>
+              {importMessage.details?.length ? <ul>{importMessage.details.map((detail) => <li key={detail}>{detail}</li>)}</ul> : null}
+            </div>}
+            {merged.duplicateCount > 0 && <p className="duplicate-note">{merged.duplicateCount} duplicate {merged.duplicateCount === 1 ? 'word was' : 'words were'} skipped. The first selected version will be used.</p>}
+            <AlertDialog open={Boolean(pendingDeleteId)} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+              <AlertDialogContent className="exit-dialog">
+                <AlertDialogHeader><AlertDialogTitle>Remove this collection?</AlertDialogTitle><AlertDialogDescription>“{collections.find((collection) => collection.id === pendingDeleteId)?.name}” will be removed from this device. Download it first if you want a backup.</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter><AlertDialogCancel>Keep collection</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => pendingDeleteId && removeCollection(pendingDeleteId)}>Remove collection</AlertDialogAction></AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </section>
           {maximum > 0 ? <>
             <div className="quiz-size-panel">
-              <div className="size-heading"><label htmlFor="quiz-size">Questions</label><output htmlFor="quiz-size">{amount}</output></div>
-              <Slider id="quiz-size" min={1} max={maximum} step={1} value={[amount]} onValueChange={(value) => setAmount(Number(Array.isArray(value) ? value[0] : value) || 1)} aria-label="Number of questions" />
+              <div className="size-heading"><label htmlFor="quiz-size">Questions</label><output htmlFor="quiz-size">{quizAmount}</output></div>
+              <Slider id="quiz-size" min={1} max={maximum} step={1} value={[quizAmount]} onValueChange={(value) => setAmount(Number(Array.isArray(value) ? value[0] : value) || 1)} aria-label="Number of questions" />
               <div className="range-labels"><span>1</span><span>{maximum} available</span></div>
             </div>
             <Button size="lg" className="start-button" onClick={() => startQuiz()} data-testid="start-quiz">Start quiz <ArrowRight size={18} /></Button>
-            <p className="setup-note">Your results aren’t saved. Refreshing starts over.</p>
-          </> : <div className="empty-state"><p>No vocabulary yet.</p><span>Add words to <code>data/vocabulary.ts</code> and redeploy.</span></div>}
+            <p className="setup-note">Quiz results aren’t saved. Your imported collections are stored on this device.</p>
+          </> : <div className="empty-state"><p>No collection selected.</p><span>Select the default collection or import and select a CSV collection.</span></div>}
         </section>
       </main>
     );

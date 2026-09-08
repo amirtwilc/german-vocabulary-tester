@@ -1,9 +1,10 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Home, { getCompletionHeading } from '@/app/page';
+import { COLLECTIONS_STORAGE_KEY, vocabularyTemplateCsv } from '@/lib/collections';
 
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); window.localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('quiz interface', () => {
   it('celebrates only a perfect score as amazing', () => {
@@ -60,5 +61,19 @@ describe('quiz interface', () => {
     expect(input).toHaveValue('ä');
     fireEvent.click(screen.getByRole('button', { name: 'Backspace' }));
     expect(input).toHaveValue('');
+  });
+
+  it('imports a valid CSV as a named collection and saves it in the browser', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Home />);
+    await user.type(screen.getByLabelText('Collection name'), 'Chapter 4');
+    const csv = vocabularyTemplateCsv();
+    const file = new File([csv], 'chapter-4.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'text', { value: async () => csv });
+    const importInput = [...container.querySelectorAll<HTMLInputElement>('input[type="file"]')].at(-1)!;
+    fireEvent.change(importInput, { target: { files: [file] } });
+    await waitFor(() => expect(screen.getByText('Chapter 4')).toBeInTheDocument());
+    expect(screen.getByText(/was added with 3 valid words/)).toBeInTheDocument();
+    expect(window.localStorage.getItem(COLLECTIONS_STORAGE_KEY)).toContain('Chapter 4');
   });
 });
