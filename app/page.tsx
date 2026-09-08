@@ -1,7 +1,7 @@
 'use client';
 
 import { type ChangeEvent, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Download, FileSpreadsheet, Languages, Pencil, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Download, Eye, EyeOff, FileSpreadsheet, Languages, Pencil, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { vocabulary } from '@/data/vocabulary';
 import { collectionWordCount, loadCollections, MAX_CSV_BYTES, mergeVocabularies, parseVocabularyCsv, saveCollections, vocabularyTemplateCsv, vocabularyToCsv, type VocabularyCollection } from '@/lib/collections';
+import { hiddenQuestionFrom, loadHiddenQuestions, saveHiddenQuestions, type HiddenQuestion } from '@/lib/learning-preferences';
 import { createQuiz, getMaximumQuestionCount, isCorrectAnswer, type QuizQuestion } from '@/lib/quiz';
 
 declare global {
@@ -26,6 +27,11 @@ const formatTime = (milliseconds: number) => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
+const withAnswerPrefix = (question: QuizQuestion, value: string) => question.answerPrefix ? `${question.answerPrefix} ${value}` : value;
+const withoutAnswerPrefix = (question: QuizQuestion, value: string) => question.answerPrefix
+  ? value.trim().replace(new RegExp(`^${question.answerPrefix}\\s+`, 'i'), '')
+  : value;
+
 export const getCompletionHeading = (correct: number, total: number) => correct === total && total > 0 ? 'Amazing.' : 'Nice work.';
 
 function BrandMark() {
@@ -39,6 +45,8 @@ export default function Home() {
   const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [collectionOpen, setCollectionOpen] = useState(false);
+  const [hiddenQuestionsOpen, setHiddenQuestionsOpen] = useState(false);
+  const [hiddenQuestions, setHiddenQuestions] = useState<HiddenQuestion[]>([]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<ImportMessage | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +57,18 @@ export default function Home() {
     ...collections.filter((collection) => selectedCollectionIds.includes(collection.id)).map((collection) => ({ id: collection.id, vocabulary: collection.vocabulary })),
   ]), [collections, selectedCollectionIds]);
   const activeVocabulary = merged.vocabulary;
-  const maximum = useMemo(() => getMaximumQuestionCount(activeVocabulary), [activeVocabulary]);
+  const hiddenQuestionKeys = useMemo(() => new Set(hiddenQuestions.map((question) => question.key)), [hiddenQuestions]);
+  const maximum = useMemo(() => getMaximumQuestionCount(activeVocabulary, hiddenQuestionKeys), [activeVocabulary, hiddenQuestionKeys]);
+  const hiddenQuestionGroups = useMemo(() => {
+    const groups = new Map<string, { word: string; wordType: HiddenQuestion['wordType']; questions: HiddenQuestion[] }>();
+    for (const question of hiddenQuestions) {
+      const groupKey = `${question.wordType}:${question.word.toLocaleLowerCase('de-DE')}`;
+      const group = groups.get(groupKey) ?? { word: question.word, wordType: question.wordType, questions: [] };
+      group.questions.push(question);
+      groups.set(groupKey, group);
+    }
+    return [...groups.values()].sort((a, b) => a.word.localeCompare(b.word, 'de-DE'));
+  }, [hiddenQuestions]);
   const defaultAmount = Math.min(20, maximum);
   const [screen, setScreen] = useState<Screen>('setup');
   const [amount, setAmount] = useState(defaultAmount);
@@ -73,13 +92,14 @@ export default function Home() {
       const saved = loadCollections();
       setCollections(saved);
       setSelectedCollectionIds(['default', ...saved.map((collection) => collection.id)]);
+      setHiddenQuestions(loadHiddenQuestions());
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   const startQuiz = useCallback((requestedAmount = amount) => {
     const safeAmount = Math.max(1, Math.min(maximum, Math.floor(requestedAmount)));
-    const nextQuestions = createQuiz(activeVocabulary, safeAmount);
+    const nextQuestions = createQuiz(activeVocabulary, safeAmount, Math.random, hiddenQuestionKeys);
     if (!nextQuestions.length) return false;
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     setAmount(safeAmount);
@@ -96,7 +116,20 @@ export default function Home() {
     setElapsed(0);
     setScreen('quiz');
     return true;
-  }, [activeVocabulary, amount, maximum]);
+  }, [activeVocabulary, amount, hiddenQuestionKeys, maximum]);
+
+  const updateHiddenQuestions = (next: HiddenQuestion[]) => {
+    setHiddenQuestions(next);
+    saveHiddenQuestions(next);
+  };
+
+  const toggleQuestionHidden = (question: QuizQuestion) => {
+    updateHiddenQuestions(hiddenQuestionKeys.has(question.questionKey)
+      ? hiddenQuestions.filter((item) => item.key !== question.questionKey)
+      : [...hiddenQuestions, hiddenQuestionFrom(question)]);
+  };
+
+  const restoreHiddenQuestion = (key: string) => updateHiddenQuestions(hiddenQuestions.filter((question) => question.key !== key));
 
   const updateCollections = (next: VocabularyCollection[]) => {
     setCollections(next);
@@ -232,14 +265,15 @@ export default function Home() {
     if (!current) return;
     if (!submitted.trim()) { setEmptyError(true); inputRef.current?.focus(); return; }
     setEmptyError(false);
-    setAnswer(submitted);
-    const correct = isCorrectAnswer(submitted, current.correctAnswer);
+    const submittedAnswer = withoutAnswerPrefix(current, submitted);
+    setAnswer(submittedAnswer);
+    const correct = isCorrectAnswer(submittedAnswer, current.correctAnswer);
     const now = performance.now();
     const nextElapsed = accumulatedTime.current + (activeStartedAt.current === null ? 0 : now - activeStartedAt.current);
     accumulatedTime.current = nextElapsed;
     activeStartedAt.current = null;
     setElapsed(nextElapsed);
-    const nextAnswers = [...answers, { question: current, answer: submitted, correct }];
+    const nextAnswers = [...answers, { question: current, answer: withAnswerPrefix(current, submittedAnswer), correct }];
     setAnswers(nextAnswers);
     setFeedback(correct);
     setLocked(true);
@@ -318,7 +352,7 @@ export default function Home() {
             <div className="quiz-size-panel">
               <div className="size-heading"><label htmlFor="quiz-size">Questions</label><output htmlFor="quiz-size">{quizAmount}</output></div>
               <Slider id="quiz-size" min={1} max={maximum} step={1} value={[quizAmount]} onValueChange={(value) => setAmount(Number(Array.isArray(value) ? value[0] : value) || 1)} aria-label="Number of questions" />
-              <div className="range-labels"><span>1</span><span>{maximum} available</span></div>
+              <div className="range-labels"><span>1</span><span>{maximum} available{hiddenQuestions.length ? ` · ${hiddenQuestions.length} hidden` : ''}</span></div>
             </div>
             <Button size="lg" className="start-button" onClick={() => startQuiz()} data-testid="start-quiz">Start quiz <ArrowRight size={18} /></Button>
           </> : <div className="empty-state"><p>No collection selected.</p><span>Select the default collection or import and select a CSV collection.</span></div>}
@@ -372,6 +406,18 @@ export default function Home() {
           </section>
             </CollapsibleContent>
           </Collapsible>
+          <Collapsible className="hidden-questions-collapsible" open={hiddenQuestionsOpen} onOpenChange={setHiddenQuestionsOpen}>
+            <CollapsibleTrigger className="collection-toggle"><span>Hidden questions ({hiddenQuestions.length})</span><ChevronDown className={hiddenQuestionsOpen ? 'open' : ''} size={18} aria-hidden="true" /></CollapsibleTrigger>
+            <CollapsibleContent>
+              <section className="hidden-questions-panel" aria-label="Hidden questions">
+                <div className="hidden-heading"><div><h2>Questions you won’t see</h2><p>Restore any question when you want to practise it again.</p></div>{hiddenQuestions.length > 0 && <button type="button" onClick={() => updateHiddenQuestions([])}>Restore all</button>}</div>
+                {hiddenQuestionGroups.length ? <div className="hidden-groups">{hiddenQuestionGroups.map((group) => <article className="hidden-group" key={`${group.wordType}:${group.word}`}>
+                  <div className="hidden-word"><strong>{group.word}</strong><span>{group.wordType}</span></div>
+                  <ul>{group.questions.map((question) => <li key={question.key}><span>{question.prompt}</span><button type="button" onClick={() => restoreHiddenQuestion(question.key)}><Eye size={15} /> Restore</button></li>)}</ul>
+                </article>)}</div> : <p className="hidden-empty">No questions are hidden yet. You can hide individual questions from a quiz’s results page.</p>}
+              </section>
+            </CollapsibleContent>
+          </Collapsible>
           <p className="setup-note">Quiz results aren’t saved. Your imported collections are stored on this device.</p>
         </section>
       </main>
@@ -397,8 +443,11 @@ export default function Home() {
           {answers.map((record, index) => <article key={record.question.id} className={`review-card ${record.correct ? 'review-correct' : 'review-wrong'}`}>
             <div className="review-top"><span>Question {index + 1}</span>{record.correct ? <span className="status correct"><Check size={15} /> Correct</span> : <span className="status wrong"><X size={15} /> Review</span>}</div>
             <h2>{record.question.prompt}</h2>
-            <dl><div><dt>Your answer</dt><dd>{record.answer}</dd></div>{!record.correct && <div><dt>Correct answer</dt><dd>{record.question.correctAnswer}</dd></div>}</dl>
+            <dl><div><dt>Your answer</dt><dd>{record.answer}</dd></div>{!record.correct && <div><dt>Correct answer</dt><dd>{withAnswerPrefix(record.question, record.question.correctAnswer)}</dd></div>}</dl>
             {record.question.notes && <p className="review-note">{record.question.notes}</p>}
+            <button type="button" className={`hide-question-button ${hiddenQuestionKeys.has(record.question.questionKey) ? 'is-hidden' : ''}`} aria-pressed={hiddenQuestionKeys.has(record.question.questionKey)} onClick={() => toggleQuestionHidden(record.question)}>
+              {hiddenQuestionKeys.has(record.question.questionKey) ? <><Eye size={17} /> Ask this question again</> : <><EyeOff size={17} /> Don’t ask this question again</>}
+            </button>
           </article>)}
         </section>
       </main>
@@ -438,12 +487,16 @@ export default function Home() {
           })}
         </div> : <form onSubmit={handleTextSubmit} className="answer-form">
           <label htmlFor="written-answer">Your answer</label>
-          <input ref={inputRef} id="written-answer" value={answer} disabled={locked} onChange={(event) => { setAnswer(event.target.value); setEmptyError(false); }} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={emptyError} aria-describedby={emptyError ? 'answer-error' : undefined} />
+          <div className={`answer-input ${current.answerPrefix ? 'has-prefix' : ''}`}>
+            {current.answerPrefix && <span className="answer-prefix" aria-hidden="true">{current.answerPrefix}</span>}
+            <input ref={inputRef} id="written-answer" value={answer} disabled={locked} onChange={(event) => { setAnswer(event.target.value); setEmptyError(false); }} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={emptyError} aria-describedby={emptyError ? 'answer-error' : undefined} />
+          </div>
           {emptyError && <p id="answer-error" className="answer-error">Enter an answer first.</p>}
           <div className="keyboard" aria-label="German character keys">{['ä', 'ö', 'ü', 'ß'].map((key) => <button key={key} type="button" disabled={locked} onPointerDown={(event) => event.preventDefault()} onClick={() => editAtCursor(key)}>{key}</button>)}<button type="button" disabled={locked} className="delete-key" aria-label="Backspace" onPointerDown={(event) => event.preventDefault()} onClick={() => editAtCursor('Backspace')}>⌫</button></div>
+          <p className="keyboard-hint">Hint: You can also type ae, oe, ue, or ss.</p>
           <Button type="submit" size="lg" disabled={locked} className="submit-button">Check answer <ArrowRight size={18} /></Button>
         </form>}
-        <div className="feedback-slot" aria-live="assertive">{feedback !== null && <div className={feedback ? 'feedback-message correct' : 'feedback-message wrong'}>{feedback ? <><CheckCircle2 /> Correct</> : <><XCircle /> {current.correctAnswer}</>}</div>}</div>
+        <div className="feedback-slot" aria-live="assertive">{feedback !== null && <div className={feedback ? 'feedback-message correct' : 'feedback-message wrong'}>{feedback ? <><CheckCircle2 /> Correct</> : <><XCircle /> {withAnswerPrefix(current, current.correctAnswer)}</>}</div>}</div>
       </section>
     </main>
   );

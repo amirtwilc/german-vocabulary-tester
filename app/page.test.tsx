@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Home, { getCompletionHeading } from '@/app/page';
 import { COLLECTIONS_STORAGE_KEY, vocabularyTemplateCsv } from '@/lib/collections';
+import { HIDDEN_QUESTIONS_STORAGE_KEY } from '@/lib/learning-preferences';
 
 afterEach(() => { cleanup(); window.localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
@@ -55,6 +56,7 @@ describe('quiz interface', () => {
     fireEvent.click(container.querySelector<HTMLButtonElement>('.choice-button')!);
     await act(async () => vi.advanceTimersByTime(1000));
     const input = screen.getByLabelText('Your answer');
+    expect(screen.getByText('Hint: You can also type ae, oe, ue, or ss.')).toBeInTheDocument();
     fireEvent.submit(input.closest('form')!);
     expect(screen.getByText('Enter an answer first.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'ä' }));
@@ -77,5 +79,17 @@ describe('quiz interface', () => {
     await waitFor(() => expect(screen.getByText('Chapter 4')).toBeInTheDocument());
     expect(screen.getByText(/was added with 4 valid words/)).toBeInTheDocument();
     expect(window.localStorage.getItem(COLLECTIONS_STORAGE_KEY)).toContain('Chapter 4');
+  });
+
+  it('shows every hidden question and lets the user restore one', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(HIDDEN_QUESTIONS_STORAGE_KEY, JSON.stringify({ version: 1, questions: [{ key: 'v1:verb:helfen:present:ich', word: 'helfen', wordType: 'verb', prompt: 'Conjugate “helfen” for ich.', hiddenAt: new Date().toISOString() }] }));
+    render(<Home />);
+    const trigger = await screen.findByRole('button', { name: 'Hidden questions (1)' });
+    await user.click(trigger);
+    expect(screen.getByText('Conjugate “helfen” for ich.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Restore' }));
+    expect(screen.getByRole('button', { name: 'Hidden questions (0)' })).toBeInTheDocument();
+    expect(screen.getByText(/No questions are hidden yet/)).toBeInTheDocument();
   });
 });

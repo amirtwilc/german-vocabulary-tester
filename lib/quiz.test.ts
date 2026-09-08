@@ -43,8 +43,12 @@ describe('quiz generation', () => {
     }
   });
 
-  it('grades case-insensitively but preserves umlaut distinctions', () => {
+  it('grades case-insensitively and accepts German character substitutions', () => {
     expect(isCorrectAnswer('  BÜCHER ', 'Bücher')).toBe(true);
+    expect(isCorrectAnswer('Buecher', 'Bücher')).toBe(true);
+    expect(isCorrectAnswer('schoen', 'schön')).toBe(true);
+    expect(isCorrectAnswer('gruen', 'grün')).toBe(true);
+    expect(isCorrectAnswer('Strasse', 'Straße')).toBe(true);
     expect(isCorrectAnswer('Bucher', 'Bücher')).toBe(false);
   });
 
@@ -91,7 +95,7 @@ describe('quiz generation', () => {
     expect(getMaximumQuestionCount(modifiers)).toBe(5);
     expect(quiz).toHaveLength(5);
     expect(quiz.filter((question) => question.id.includes('comparative')).every((question) => question.mode === 'text')).toBe(true);
-    expect(quiz.find((question) => question.id === 'good-superlative')).toMatchObject({ mode: 'text', correctAnswer: 'am besten', wordType: 'adjective' });
+    expect(quiz.find((question) => question.id === 'good-superlative')).toMatchObject({ mode: 'text', answerPrefix: 'am', correctAnswer: 'besten', wordType: 'adjective' });
   });
 
   it('does not create present-tense questions for wir or sie / Sie', () => {
@@ -110,5 +114,25 @@ describe('quiz generation', () => {
       expect.objectContaining({ german: 'viel', comparative: 'mehr', superlative: 'am meisten' }),
       expect.objectContaining({ german: 'nah', comparative: 'näher', superlative: 'am nächsten' }),
     ]));
+  });
+
+  it('excludes a specific hidden question before calculating quiz size', () => {
+    const small = { nouns: [], verbs: [{ id: 'help', infinitive: 'helfen', english: 'to help', present: { ich: 'helfe', du: 'hilfst', erSieEs: 'hilft' } }], prepositions: [], adjectivesAndAdverbs: [] } satisfies Vocabulary;
+    const allQuestions = createQuiz(small, 10, () => 0.5);
+    const hiddenKey = allQuestions.find((question) => question.id === 'help-present-ich')!.questionKey;
+    const hidden = new Set([hiddenKey]);
+    const filtered = createQuiz(small, 10, () => 0.5, hidden);
+    expect(getMaximumQuestionCount(small, hidden)).toBe(3);
+    expect(filtered).toHaveLength(3);
+    expect(filtered.some((question) => question.questionKey === hiddenKey)).toBe(false);
+    expect(filtered.some((question) => question.id === 'help-present-du')).toBe(true);
+  });
+
+  it('uses the same question key for duplicate words from different collections', () => {
+    const first = { nouns: [], verbs: [{ id: 'default-help', infinitive: 'helfen', english: 'to help', present: { ich: 'helfe' } }], prepositions: [], adjectivesAndAdverbs: [] } satisfies Vocabulary;
+    const second = { nouns: [], verbs: [{ id: 'custom-row-9', infinitive: 'Helfen', english: 'to help', present: { ich: 'helfe' } }], prepositions: [], adjectivesAndAdverbs: [] } satisfies Vocabulary;
+    const firstQuestion = createQuiz(first, 10, () => 0.5).find((question) => question.id.endsWith('present-ich'))!;
+    const secondQuestion = createQuiz(second, 10, () => 0.5).find((question) => question.id.endsWith('present-ich'))!;
+    expect(firstQuestion.questionKey).toBe(secondQuestion.questionKey);
   });
 });
