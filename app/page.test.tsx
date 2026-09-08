@@ -1,11 +1,16 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import Home from '@/app/page';
+import Home, { getCompletionHeading } from '@/app/page';
 
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('quiz interface', () => {
+  it('celebrates only a perfect score as amazing', () => {
+    expect(getCompletionHeading(20, 20)).toBe('Amazing.');
+    expect(getCompletionHeading(19, 20)).toBe('Nice work.');
+  });
+
   it('starts a quiz and shows progress', async () => {
     const user = userEvent.setup();
     render(<Home />);

@@ -23,6 +23,8 @@ const formatTime = (milliseconds: number) => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
+export const getCompletionHeading = (correct: number, total: number) => correct === total && total > 0 ? 'Amazing.' : 'Nice work.';
+
 function BrandMark() {
   return <div className="brand-mark" aria-hidden="true"><span /><span /><span /></div>;
 }
@@ -199,8 +201,11 @@ export default function Home() {
         <header className="results-header">
           <BrandMark />
           <div className="results-kicker"><CheckCircle2 size={18} /> Quiz complete</div>
-          <h1>Nice work.</h1>
-          <div className="score-line"><strong>{correctCount} / {answers.length}</strong><span>{formatTime(elapsed)}</span></div>
+          <h1>{getCompletionHeading(correctCount, answers.length)}</h1>
+          <div className="score-line">
+            <div className="score-stat"><span>Score</span><strong>{correctCount} / {answers.length}</strong></div>
+            <div className="elapsed-stat"><span>Time it took</span><strong><Clock3 aria-hidden="true" /> {formatTime(elapsed)}</strong></div>
+          </div>
           <p>Review each answer while it’s still fresh.</p>
           <Button onClick={returnToSetup} className="restart-button"><RotateCcw size={17} /> Start another quiz</Button>
         </header>

@@ -70,7 +70,12 @@ h1,h2,p { overflow-wrap:break-word; }
 .results-header,.review-list { width:min(100%,720px); margin-inline:auto; }
 .results-header { padding-bottom:38px; } .results-header .brand-mark { margin-bottom:38px; }
 .results-header>p { margin:14px 0 24px; color:#657386; font-size:1rem; }
-.score-line { display:flex; align-items:baseline; gap:15px; margin-top:22px; } .score-line strong { font-size:1.45rem; } .score-line span { color:#748294; font-size:.9rem; font-variant-numeric:tabular-nums; }
+.score-line { display:flex; align-items:stretch; gap:12px; margin-top:24px; }
+.score-line>div { min-width:140px; padding:14px 16px; border:1px solid #d7e1e9; border-radius:14px; background:#f7f9fb; }
+.score-line span { display:block; margin-bottom:5px; color:#748294; font-size:.78rem; font-weight:750; letter-spacing:.035em; text-transform:uppercase; }
+.score-line strong { display:flex; align-items:center; gap:8px; color:#24374a; font-size:1.45rem; font-variant-numeric:tabular-nums; line-height:1.1; }
+.elapsed-stat strong { color:#193b5a; font-size:clamp(1.9rem,7vw,2.4rem); letter-spacing:-.035em; }
+.elapsed-stat svg { width:22px; height:22px; stroke-width:1.8; }
 .restart-button { height:48px; border-radius:13px; font-weight:700; }
 .review-list { display:grid; gap:13px; }
 .review-card { padding:22px; border:1px solid #d6e0e8; border-left:4px solid #8d9bab; border-radius:17px; background:#fff; }
@@ -88,6 +93,6 @@ h1,h2,p { overflow-wrap:break-word; }
   .question-card { flex:1; min-height:0; padding:28px 20px 22px; border-radius:24px 24px 0 0; box-shadow:0 -5px 30px rgba(25,59,90,.06); } .question-card h1 { margin-bottom:28px; }
   .choice-grid { grid-template-columns:1fr; } .choice-button { min-height:60px; }
   .keyboard { gap:6px; } .keyboard button { min-width:42px; } .keyboard .delete-key { min-width:50px; }
-  .results-shell { padding:32px 14px 60px; } .results-header { padding-inline:8px; } .review-card { padding:19px 17px; } .review-card dl { grid-template-columns:1fr; }
+  .results-shell { padding:32px 14px 60px; } .results-header { padding-inline:8px; } .score-line { display:grid; grid-template-columns:.8fr 1.2fr; } .score-line>div { min-width:0; padding:13px; } .review-card { padding:19px 17px; } .review-card dl { grid-template-columns:1fr; }
 }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition-duration:.01ms!important; animation-duration:.01ms!important; } }
