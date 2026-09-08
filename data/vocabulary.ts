@@ -97,5 +97,12 @@ export const vocabulary = {
     { id: 'vor', german: 'vor', usage: 'two-way' },
     { id: 'zwischen', german: 'zwischen', usage: 'two-way' },
   ],
-  adjectivesAndAdverbs: [],
+  adjectivesAndAdverbs: [
+    { id: 'schoen', kind: 'adjective', german: 'schön', english: 'beautiful', comparative: 'schöner', superlative: 'am schönsten' },
+    { id: 'kurz', kind: 'adjective', german: 'kurz', english: 'short', comparative: 'kürzer', superlative: 'am kürzesten' },
+    { id: 'gut', kind: 'adjective', german: 'gut', english: 'good', comparative: 'besser', superlative: 'am besten' },
+    { id: 'gern', kind: 'adverb', german: 'gern', english: 'gladly', comparative: 'lieber', superlative: 'am liebsten' },
+    { id: 'viel', kind: 'adjective', german: 'viel', english: 'much / many', comparative: 'mehr', superlative: 'am meisten' },
+    { id: 'nah', kind: 'adjective', german: 'nah', english: 'near', comparative: 'näher', superlative: 'am nächsten' },
+  ],
 } as const satisfies Vocabulary;

@@ -100,4 +100,15 @@ describe('quiz generation', () => {
     expect(quiz).toHaveLength(1);
     expect(quiz[0].id).toBe('pay-translation');
   });
+
+  it('includes the requested default comparison forms', () => {
+    expect(vocabulary.adjectivesAndAdverbs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ german: 'schön', comparative: 'schöner', superlative: 'am schönsten' }),
+      expect.objectContaining({ german: 'kurz', comparative: 'kürzer', superlative: 'am kürzesten' }),
+      expect.objectContaining({ german: 'gut', comparative: 'besser', superlative: 'am besten' }),
+      expect.objectContaining({ german: 'gern', kind: 'adverb', comparative: 'lieber', superlative: 'am liebsten' }),
+      expect.objectContaining({ german: 'viel', comparative: 'mehr', superlative: 'am meisten' }),
+      expect.objectContaining({ german: 'nah', comparative: 'näher', superlative: 'am nächsten' }),
+    ]));
+  });
 });
