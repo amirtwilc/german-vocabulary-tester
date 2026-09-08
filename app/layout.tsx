@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Wort für Wort',
-  description: 'A focused German vocabulary quiz for the words you are learning.',
+  description:
+    'A focused German vocabulary quiz for the words you are learning.',
 };
 
 export default function RootLayout({

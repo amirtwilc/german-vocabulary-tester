@@ -1,6 +1,8 @@
 import type { QuizQuestion } from '@/lib/quiz';
+import { writeLocalStorage } from '@/lib/storage';
 
-export const HIDDEN_QUESTIONS_STORAGE_KEY = 'wort-fuer-wort.hidden-questions.v1';
+export const HIDDEN_QUESTIONS_STORAGE_KEY =
+  'wort-fuer-wort.hidden-questions.v1';
 
 export interface HiddenQuestion {
   key: string;
@@ -18,22 +20,41 @@ interface HiddenQuestionStorage {
 const isHiddenQuestion = (value: unknown): value is HiddenQuestion => {
   if (!value || typeof value !== 'object') return false;
   const item = value as Partial<HiddenQuestion>;
-  return typeof item.key === 'string' && typeof item.word === 'string' && typeof item.wordType === 'string' && typeof item.prompt === 'string' && typeof item.hiddenAt === 'string';
+  return (
+    typeof item.key === 'string' &&
+    typeof item.word === 'string' &&
+    ['noun', 'verb', 'preposition', 'adjective', 'adverb'].includes(
+      String(item.wordType),
+    ) &&
+    typeof item.prompt === 'string' &&
+    typeof item.hiddenAt === 'string'
+  );
 };
 
 export const loadHiddenQuestions = (): HiddenQuestion[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const stored = JSON.parse(window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY) ?? 'null') as Partial<HiddenQuestionStorage> | null;
+    const stored = JSON.parse(
+      window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY) ?? 'null',
+    ) as Partial<HiddenQuestionStorage> | null;
     if (stored?.version !== 1 || !Array.isArray(stored.questions)) return [];
-    const unique = new Map(stored.questions.filter(isHiddenQuestion).map((question) => [question.key, question]));
+    const unique = new Map(
+      stored.questions
+        .filter(isHiddenQuestion)
+        .map((question) => [question.key, question]),
+    );
     return [...unique.values()];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 };
 
 export const saveHiddenQuestions = (questions: HiddenQuestion[]) => {
   const storage: HiddenQuestionStorage = { version: 1, questions };
-  window.localStorage.setItem(HIDDEN_QUESTIONS_STORAGE_KEY, JSON.stringify(storage));
+  return writeLocalStorage(
+    HIDDEN_QUESTIONS_STORAGE_KEY,
+    JSON.stringify(storage),
+  );
 };
 
 export const hiddenQuestionFrom = (question: QuizQuestion): HiddenQuestion => ({

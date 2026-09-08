@@ -49,14 +49,16 @@ No environment variables or external services are required for the current app.
 
 ## Available commands
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the local development server. |
-| `npm run build` | Create a production build. |
-| `npm start` | Serve the production build locally with Wrangler. Run `npm run build` first. |
-| `npm test` | Run the test suite once. |
-| `npm run lint` | Check the code with oxlint. |
-| `npm run format` | Format the project with oxfmt. |
+| Command                | Description                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`          | Start the local development server.                                          |
+| `npm run build`        | Create a production build.                                                   |
+| `npm start`            | Serve the production build locally with Wrangler. Run `npm run build` first. |
+| `npm test`             | Run the test suite once.                                                     |
+| `npm run typecheck`    | Check TypeScript types without emitting files.                               |
+| `npm run lint`         | Check the code with oxlint.                                                  |
+| `npm run format`       | Format the project with oxfmt.                                               |
+| `npm run format:check` | Verify formatting without changing files.                                    |
 
 ## Vocabulary data
 
