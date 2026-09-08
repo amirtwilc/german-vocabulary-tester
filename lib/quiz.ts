@@ -44,6 +44,9 @@ const verbCandidates = (verb: Verb, random: () => number): QuizQuestion[] => {
   for (const [person, answer] of Object.entries(verb.present ?? {}) as [PresentPerson, string][]) {
     candidates.push({ id: `${verb.id}-present-${person}`, wordId: verb.id, wordType: 'verb', word: verb.infinitive, eyebrow: 'Verb · present tense', prompt: `Conjugate “${verb.infinitive}” for ${people[person]}.`, mode: 'text', correctAnswer: answer, notes: verb.notes });
   }
+  for (const [person, answer] of Object.entries(verb.preterite ?? {}) as [PresentPerson, string][]) {
+    candidates.push({ id: `${verb.id}-preterite-${person}`, wordId: verb.id, wordType: 'verb', word: verb.infinitive, eyebrow: 'Verb · Präteritum', prompt: `Conjugate “${verb.infinitive}” in Präteritum for ${people[person]}.`, mode: 'text', correctAnswer: answer, notes: verb.notes });
+  }
   if (verb.pastParticiple) candidates.push({ id: `${verb.id}-participle`, wordId: verb.id, wordType: 'verb', word: verb.infinitive, eyebrow: 'Verb · past participle', prompt: `Write the past participle of “${verb.infinitive}”.`, mode: 'text', correctAnswer: verb.pastParticiple, notes: verb.notes });
   if (verb.auxiliary) candidates.push({ id: `${verb.id}-auxiliary`, wordId: verb.id, wordType: 'verb', word: verb.infinitive, eyebrow: 'Verb · auxiliary', prompt: `Which auxiliary does “${verb.infinitive}” use?`, mode: 'choice', correctAnswer: verb.auxiliary, options: shuffle(['hat', 'ist'], random), notes: verb.notes });
   if (verb.case) candidates.push({ id: `${verb.id}-case`, wordId: verb.id, wordType: 'verb', word: verb.infinitive, eyebrow: 'Verb · grammatical case', prompt: `Which case does “${verb.infinitive}” take?`, mode: 'choice', correctAnswer: verb.case, options: shuffle(['Akkusativ', 'Dativ', 'Akkusativ + Dativ'], random), notes: verb.notes });
@@ -55,7 +58,7 @@ const verbBlock = (verb: Verb, pool: readonly Verb[], random: () => number): Qui
   ...verbCandidates(verb, random),
 ];
 
-const verbFactCount = (verb: Verb) => Object.keys(verb.present ?? {}).length + Number(Boolean(verb.pastParticiple)) + Number(Boolean(verb.auxiliary)) + Number(Boolean(verb.case));
+const verbFactCount = (verb: Verb) => Object.keys(verb.present ?? {}).length + Object.keys(verb.preterite ?? {}).length + Number(Boolean(verb.pastParticiple)) + Number(Boolean(verb.auxiliary)) + Number(Boolean(verb.case));
 
 export const getMaximumQuestionCount = (source: Vocabulary) => source.nouns.length * 3 + source.verbs.reduce((sum, verb) => sum + 1 + Math.min(3, verbFactCount(verb)), 0);
 

@@ -17,6 +17,8 @@ export interface Verb {
   infinitive: string;
   english: string;
   present?: Partial<Record<PresentPerson, string>>;
+  /** Optional simple-past forms. Every provided person can become a written Präteritum question. */
+  preterite?: Partial<Record<PresentPerson, string>>;
   pastParticiple?: string;
   auxiliary?: Auxiliary;
   case?: VerbCase;
@@ -48,5 +50,10 @@ export const vocabulary = {
     { id: 'helfen', infinitive: 'helfen', english: 'to help', present: { ich: 'helfe', du: 'hilfst', erSieEs: 'hilft', wir: 'helfen' }, pastParticiple: 'geholfen', auxiliary: 'hat', case: 'Dativ' },
     { id: 'lesen', infinitive: 'lesen', english: 'to read', present: { ich: 'lese', du: 'liest', erSieEs: 'liest', wir: 'lesen' }, pastParticiple: 'gelesen', auxiliary: 'hat', case: 'Akkusativ' },
     { id: 'sprechen', infinitive: 'sprechen', english: 'to speak', present: { ich: 'spreche', du: 'sprichst', erSieEs: 'spricht', wir: 'sprechen' }, pastParticiple: 'gesprochen', auxiliary: 'hat' },
+    { id: 'wollen', infinitive: 'wollen', english: 'to want', present: { ich: 'will', du: 'willst', erSieEs: 'will', wir: 'wollen', ihr: 'wollt', sieSie: 'wollen' }, preterite: { ich: 'wollte', du: 'wolltest', erSieEs: 'wollte', wir: 'wollten', ihr: 'wolltet', sieSie: 'wollten' } },
+    { id: 'muessen', infinitive: 'müssen', english: 'to have to / must', present: { ich: 'muss', du: 'musst', erSieEs: 'muss', wir: 'müssen', ihr: 'müsst', sieSie: 'müssen' }, preterite: { ich: 'musste', du: 'musstest', erSieEs: 'musste', wir: 'mussten', ihr: 'musstet', sieSie: 'mussten' } },
+    { id: 'koennen', infinitive: 'können', english: 'to be able to / can', present: { ich: 'kann', du: 'kannst', erSieEs: 'kann', wir: 'können', ihr: 'könnt', sieSie: 'können' }, preterite: { ich: 'konnte', du: 'konntest', erSieEs: 'konnte', wir: 'konnten', ihr: 'konntet', sieSie: 'konnten' } },
+    { id: 'duerfen', infinitive: 'dürfen', english: 'to be allowed to / may', present: { ich: 'darf', du: 'darfst', erSieEs: 'darf', wir: 'dürfen', ihr: 'dürft', sieSie: 'dürfen' }, preterite: { ich: 'durfte', du: 'durftest', erSieEs: 'durfte', wir: 'durften', ihr: 'durftet', sieSie: 'durften' } },
+    { id: 'sollen', infinitive: 'sollen', english: 'to be supposed to / should', present: { ich: 'soll', du: 'sollst', erSieEs: 'soll', wir: 'sollen', ihr: 'sollt', sieSie: 'sollen' }, preterite: { ich: 'sollte', du: 'solltest', erSieEs: 'sollte', wir: 'sollten', ihr: 'solltet', sieSie: 'sollten' } },
   ],
 } as const satisfies Vocabulary;

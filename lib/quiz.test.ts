@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Vocabulary } from '@/data/vocabulary';
+import { vocabulary } from '@/data/vocabulary';
 import { createQuiz, getMaximumQuestionCount, isCorrectAnswer } from '@/lib/quiz';
 
 const source = {
@@ -43,5 +44,20 @@ describe('quiz generation', () => {
   it('grades case-insensitively but preserves umlaut distinctions', () => {
     expect(isCorrectAnswer('  BÜCHER ', 'Bücher')).toBe(true);
     expect(isCorrectAnswer('Bucher', 'Bücher')).toBe(false);
+  });
+
+  it('creates written Präteritum questions from optional per-person forms', () => {
+    const modalOnly = { nouns: [], verbs: [{ id: 'can', infinitive: 'können', english: 'can', preterite: { ich: 'konnte', du: 'konntest', wir: 'konnten', ihr: 'konntet' } }] } satisfies Vocabulary;
+    const quiz = createQuiz(modalOnly, 10, () => 0.5);
+    expect(quiz).toHaveLength(4);
+    expect(quiz.slice(1).every((question) => question.mode === 'text' && question.eyebrow === 'Verb · Präteritum')).toBe(true);
+    expect(quiz.slice(1).every((question) => question.id.includes('-preterite-'))).toBe(true);
+  });
+
+  it('adds Präteritum only to the requested modal verbs', () => {
+    const modalIds = ['wollen', 'muessen', 'koennen', 'duerfen', 'sollen'];
+    const existingIds = ['fahren', 'danken', 'bezahlen', 'essen', 'schlafen', 'helfen', 'lesen', 'sprechen'];
+    expect(vocabulary.verbs.filter((verb) => modalIds.includes(verb.id)).every((verb) => 'preterite' in verb && Object.keys(verb.preterite).length === 6)).toBe(true);
+    expect(vocabulary.verbs.filter((verb) => existingIds.includes(verb.id)).every((verb) => !('preterite' in verb))).toBe(true);
   });
 });
