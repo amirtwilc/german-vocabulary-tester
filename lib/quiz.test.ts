@@ -13,6 +13,7 @@ const source = {
     { id: 'help', infinitive: 'helfen', english: 'to help', present: { ich: 'helfe' }, auxiliary: 'hat', case: 'Dativ' },
   ],
   prepositions: [],
+  adjectivesAndAdverbs: [],
 } satisfies Vocabulary;
 
 describe('quiz generation', () => {
@@ -48,7 +49,7 @@ describe('quiz generation', () => {
   });
 
   it('creates written Präteritum questions from optional per-person forms', () => {
-    const modalOnly = { nouns: [], verbs: [{ id: 'can', infinitive: 'können', english: 'can', preterite: { ich: 'konnte', du: 'konntest', wir: 'konnten', ihr: 'konntet' } }], prepositions: [] } satisfies Vocabulary;
+    const modalOnly = { nouns: [], verbs: [{ id: 'can', infinitive: 'können', english: 'can', preterite: { ich: 'konnte', du: 'konntest', wir: 'konnten', ihr: 'konntet' } }], prepositions: [], adjectivesAndAdverbs: [] } satisfies Vocabulary;
     const quiz = createQuiz(modalOnly, 10, () => 0.5);
     expect(quiz).toHaveLength(4);
     expect(quiz.slice(1).every((question) => question.mode === 'text' && question.eyebrow === 'Verb · Präteritum')).toBe(true);
@@ -63,7 +64,7 @@ describe('quiz generation', () => {
   });
 
   it('generates one fixed-case question and two movement questions for prepositions', () => {
-    const prepositionOnly = { nouns: [], verbs: [], prepositions: [{ id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' }, { id: 'auf', german: 'auf', usage: 'two-way' }] } satisfies Vocabulary;
+    const prepositionOnly = { nouns: [], verbs: [], prepositions: [{ id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' }, { id: 'auf', german: 'auf', usage: 'two-way' }], adjectivesAndAdverbs: [] } satisfies Vocabulary;
     const quiz = createQuiz(prepositionOnly, 10, () => 0.5);
     expect(getMaximumQuestionCount(prepositionOnly)).toBe(3);
     expect(quiz).toHaveLength(3);
@@ -74,10 +75,29 @@ describe('quiz generation', () => {
   });
 
   it('shuffles the two halves of a two-way preposition independently', () => {
-    const mixedPrepositions = { nouns: [], verbs: [], prepositions: [{ id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' }, { id: 'durch', german: 'durch', usage: 'fixed', case: 'Akkusativ' }, { id: 'vor', german: 'vor', usage: 'two-way' }] } satisfies Vocabulary;
+    const mixedPrepositions = { nouns: [], verbs: [], prepositions: [{ id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' }, { id: 'durch', german: 'durch', usage: 'fixed', case: 'Akkusativ' }, { id: 'vor', german: 'vor', usage: 'two-way' }], adjectivesAndAdverbs: [] } satisfies Vocabulary;
     const quiz = createQuiz(mixedPrepositions, 4, () => 0.5);
     const movementIndex = quiz.findIndex((question) => question.id === 'vor-movement');
     const locationIndex = quiz.findIndex((question) => question.id === 'vor-location');
     expect(Math.abs(movementIndex - locationIndex)).toBeGreaterThan(1);
+  });
+
+  it('creates written comparative and superlative questions for adjectives and adverbs', () => {
+    const modifiers = { nouns: [], verbs: [], prepositions: [], adjectivesAndAdverbs: [
+      { id: 'good', kind: 'adjective', german: 'gut', english: 'good', comparative: 'besser', superlative: 'am besten' },
+      { id: 'often', kind: 'adverb', german: 'oft', english: 'often', comparative: 'öfter' },
+    ] } satisfies Vocabulary;
+    const quiz = createQuiz(modifiers, 10, () => 0.5);
+    expect(getMaximumQuestionCount(modifiers)).toBe(5);
+    expect(quiz).toHaveLength(5);
+    expect(quiz.filter((question) => question.id.includes('comparative')).every((question) => question.mode === 'text')).toBe(true);
+    expect(quiz.find((question) => question.id === 'good-superlative')).toMatchObject({ mode: 'text', correctAnswer: 'am besten', wordType: 'adjective' });
+  });
+
+  it('does not create present-tense questions for wir or sie / Sie', () => {
+    const verb = { nouns: [], verbs: [{ id: 'pay', infinitive: 'bezahlen', english: 'to pay', present: { wir: 'bezahlen', sieSie: 'bezahlen' } }], prepositions: [], adjectivesAndAdverbs: [] } satisfies Vocabulary;
+    const quiz = createQuiz(verb, 10, () => 0.5);
+    expect(quiz).toHaveLength(1);
+    expect(quiz[0].id).toBe('pay-translation');
   });
 });

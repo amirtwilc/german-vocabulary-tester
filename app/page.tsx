@@ -1,11 +1,12 @@
 'use client';
 
 import { type ChangeEvent, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, Download, FileSpreadsheet, Languages, Pencil, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, Clock3, Download, FileSpreadsheet, Languages, Pencil, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { vocabulary } from '@/data/vocabulary';
 import { collectionWordCount, loadCollections, MAX_CSV_BYTES, mergeVocabularies, parseVocabularyCsv, saveCollections, vocabularyTemplateCsv, vocabularyToCsv, type VocabularyCollection } from '@/lib/collections';
 import { createQuiz, getMaximumQuestionCount, isCorrectAnswer, type QuizQuestion } from '@/lib/quiz';
@@ -37,6 +38,7 @@ export default function Home() {
   const [collectionName, setCollectionName] = useState('');
   const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [collectionOpen, setCollectionOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<ImportMessage | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -312,6 +314,17 @@ export default function Home() {
           <div className="eyebrow"><Languages size={16} /> German vocabulary</div>
           <h1 id="page-title">Wort für Wort</h1>
           <p className="lede">A focused quiz for the words you’re learning.</p>
+          {maximum > 0 ? <>
+            <div className="quiz-size-panel">
+              <div className="size-heading"><label htmlFor="quiz-size">Questions</label><output htmlFor="quiz-size">{quizAmount}</output></div>
+              <Slider id="quiz-size" min={1} max={maximum} step={1} value={[quizAmount]} onValueChange={(value) => setAmount(Number(Array.isArray(value) ? value[0] : value) || 1)} aria-label="Number of questions" />
+              <div className="range-labels"><span>1</span><span>{maximum} available</span></div>
+            </div>
+            <Button size="lg" className="start-button" onClick={() => startQuiz()} data-testid="start-quiz">Start quiz <ArrowRight size={18} /></Button>
+          </> : <div className="empty-state"><p>No collection selected.</p><span>Select the default collection or import and select a CSV collection.</span></div>}
+          <Collapsible className="collections-collapsible" open={collectionOpen} onOpenChange={setCollectionOpen}>
+            <CollapsibleTrigger className="collection-toggle"><span>{collectionOpen ? 'Hide word collection' : 'Expand word collection'}</span><ChevronDown className={collectionOpen ? 'open' : ''} size={18} aria-hidden="true" /></CollapsibleTrigger>
+            <CollapsibleContent>
           <section className="collections-panel" aria-labelledby="collections-heading">
             <div className="collections-heading-row">
               <div><h2 id="collections-heading">Quiz collections</h2><p>Choose one or more sources for this quiz.</p></div>
@@ -340,7 +353,7 @@ export default function Home() {
             <input ref={replaceInputRef} className="visually-hidden" type="file" accept=".csv,text/csv" onChange={handleReplace} />
             <div className="csv-import-box">
               <FileSpreadsheet size={20} aria-hidden="true" />
-              <div><strong>Add a collection from CSV</strong><p>Download the template, replace its example rows, then upload it here. Your collections stay saved in this browser. Export a copy if you want to move them to another device.</p></div>
+              <div><strong>Add a collection from CSV</strong><p>Rows can be nouns, verbs, prepositions, adjectives, or adverbs. Download the template, replace its examples, then upload it here. Collections stay in this browser; download a copy to move them to another device.</p></div>
               <label className="collection-name-label">Collection name<input value={collectionName} maxLength={60} placeholder="e.g. Chapter 4" onChange={(event) => { setCollectionName(event.target.value); setImportMessage(null); }} /></label>
               <input ref={importInputRef} className="visually-hidden" type="file" accept=".csv,text/csv" onChange={handleImport} />
               <Button type="button" variant="outline" className="upload-button" onClick={() => importInputRef.current?.click()}><Upload size={16} /> Choose CSV file</Button>
@@ -357,15 +370,9 @@ export default function Home() {
               </AlertDialogContent>
             </AlertDialog>
           </section>
-          {maximum > 0 ? <>
-            <div className="quiz-size-panel">
-              <div className="size-heading"><label htmlFor="quiz-size">Questions</label><output htmlFor="quiz-size">{quizAmount}</output></div>
-              <Slider id="quiz-size" min={1} max={maximum} step={1} value={[quizAmount]} onValueChange={(value) => setAmount(Number(Array.isArray(value) ? value[0] : value) || 1)} aria-label="Number of questions" />
-              <div className="range-labels"><span>1</span><span>{maximum} available</span></div>
-            </div>
-            <Button size="lg" className="start-button" onClick={() => startQuiz()} data-testid="start-quiz">Start quiz <ArrowRight size={18} /></Button>
-            <p className="setup-note">Quiz results aren’t saved. Your imported collections are stored on this device.</p>
-          </> : <div className="empty-state"><p>No collection selected.</p><span>Select the default collection or import and select a CSV collection.</span></div>}
+            </CollapsibleContent>
+          </Collapsible>
+          <p className="setup-note">Quiz results aren’t saved. Your imported collections are stored on this device.</p>
         </section>
       </main>
     );

@@ -1,4 +1,4 @@
-import type { Article, Auxiliary, Noun, Preposition, PresentPerson, Verb, VerbCase, Vocabulary } from '@/data/vocabulary';
+import type { AdjectiveAdverb, Article, Auxiliary, Noun, Preposition, PresentPerson, Verb, VerbCase, Vocabulary } from '@/data/vocabulary';
 
 export interface VocabularyCollection {
   id: string;
@@ -23,8 +23,8 @@ export const COLLECTIONS_STORAGE_KEY = 'wort-fuer-wort.collections.v1';
 export const MAX_CSV_BYTES = 2 * 1024 * 1024;
 
 export const CSV_COLUMNS = [
-  'type', 'german', 'english', 'article', 'plural', 'usage', 'case',
-  'present_ich', 'present_du', 'present_er_sie_es', 'present_wir', 'present_ihr', 'present_sie_sie',
+  'type', 'german', 'english', 'article', 'plural', 'comparative', 'superlative', 'usage', 'case',
+  'present_ich', 'present_du', 'present_er_sie_es', 'present_ihr',
   'preterite_ich', 'preterite_du', 'preterite_er_sie_es', 'preterite_wir', 'preterite_ihr', 'preterite_sie_sie',
   'past_participle', 'auxiliary', 'notes',
 ] as const;
@@ -32,11 +32,14 @@ export const CSV_COLUMNS = [
 type CsvColumn = typeof CSV_COLUMNS[number];
 type CsvRecord = Record<CsvColumn, string>;
 
-const personColumns: Record<PresentPerson, string> = {
+const preteritePersonColumns: Record<PresentPerson, string> = {
   ich: 'ich', du: 'du', erSieEs: 'er_sie_es', wir: 'wir', ihr: 'ihr', sieSie: 'sie_sie',
 };
+const presentPersonColumns: Partial<Record<PresentPerson, string>> = {
+  ich: 'ich', du: 'du', erSieEs: 'er_sie_es', ihr: 'ihr',
+};
 
-const emptyVocabulary = (): Vocabulary => ({ nouns: [], verbs: [], prepositions: [] });
+const emptyVocabulary = (): Vocabulary => ({ nouns: [], verbs: [], prepositions: [], adjectivesAndAdverbs: [] });
 const normalize = (value: string) => value.trim().toLocaleLowerCase('de-DE').normalize('NFC');
 const makeId = (value: string, index: number) => `${normalize(value).replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'word'}-${index + 1}`;
 
@@ -63,7 +66,8 @@ const parseRows = (text: string): string[][] => {
 
 const pickForms = (row: CsvRecord, tense: 'present' | 'preterite') => {
   const forms: Partial<Record<PresentPerson, string>> = {};
-  for (const [person, suffix] of Object.entries(personColumns) as [PresentPerson, string][]) {
+  const columns = tense === 'present' ? presentPersonColumns : preteritePersonColumns;
+  for (const [person, suffix] of Object.entries(columns) as [PresentPerson, string][]) {
     const value = row[`${tense}_${suffix}` as CsvColumn]?.trim();
     if (value) forms[person] = value;
   }
@@ -92,6 +96,7 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
   const nouns: Noun[] = [];
   const verbs: Verb[] = [];
   const prepositions: Preposition[] = [];
+  const adjectivesAndAdverbs: AdjectiveAdverb[] = [];
   const errors: string[] = [];
   const seen = new Set<string>();
 
@@ -101,7 +106,7 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
     const values = Object.fromEntries(headers.map((header, index) => [header, cells[index]?.trim() ?? ''])) as CsvRecord;
     const type = normalize(values.type);
     const german = values.german.trim();
-    if (!['noun', 'verb', 'preposition'].includes(type)) { errors.push(`Row ${line}: type must be noun, verb, or preposition.`); return; }
+    if (!['noun', 'verb', 'preposition', 'adjective', 'adverb'].includes(type)) { errors.push(`Row ${line}: type must be noun, verb, preposition, adjective, or adverb.`); return; }
     if (!german) { errors.push(`Row ${line}: german is required.`); return; }
     const duplicateKey = `${type}:${normalize(german)}`;
     if (seen.has(duplicateKey)) { errors.push(`Row ${line}: duplicate ${type} “${german}” in this file.`); return; }
@@ -128,6 +133,11 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
       });
       return;
     }
+    if (type === 'adjective' || type === 'adverb') {
+      if (!values.english) { errors.push(`Row ${line}: ${type}s require english.`); return; }
+      adjectivesAndAdverbs.push({ id, kind: type, german, english: values.english, comparative: values.comparative || undefined, superlative: values.superlative || undefined });
+      return;
+    }
     const usage = normalize(values.usage);
     if (!['fixed', 'two-way'].includes(usage)) { errors.push(`Row ${line}: preposition usage must be fixed or two-way.`); return; }
     if (usage === 'fixed' && !['Akkusativ', 'Dativ'].includes(values.case)) { errors.push(`Row ${line}: a fixed preposition requires case Akkusativ or Dativ.`); return; }
@@ -135,9 +145,9 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
     else prepositions.push({ id, german, usage: 'two-way' });
   });
 
-  const wordCount = nouns.length + verbs.length + prepositions.length;
+  const wordCount = nouns.length + verbs.length + prepositions.length + adjectivesAndAdverbs.length;
   if (!wordCount && !errors.length) errors.push('The CSV has headings but contains no vocabulary rows.');
-  return errors.length ? { errors, wordCount } : { vocabulary: { nouns, verbs, prepositions }, errors: [], wordCount };
+  return errors.length ? { errors, wordCount } : { vocabulary: { nouns, verbs, prepositions, adjectivesAndAdverbs }, errors: [], wordCount };
 };
 
 const csvCell = (value: string | undefined) => {
@@ -150,27 +160,31 @@ export const vocabularyToCsv = (source: Vocabulary) => {
   for (const noun of source.nouns) records.push({ type: 'noun', german: noun.german, english: noun.english, article: noun.article, plural: noun.plural });
   for (const verb of source.verbs) {
     const record: Partial<CsvRecord> = { type: 'verb', german: verb.infinitive, english: verb.english, past_participle: verb.pastParticiple, auxiliary: verb.auxiliary, case: verb.case, notes: verb.notes };
-    for (const [person, suffix] of Object.entries(personColumns) as [PresentPerson, string][]) {
+    for (const [person, suffix] of Object.entries(presentPersonColumns) as [PresentPerson, string][]) {
       record[`present_${suffix}` as CsvColumn] = verb.present?.[person];
+    }
+    for (const [person, suffix] of Object.entries(preteritePersonColumns) as [PresentPerson, string][]) {
       record[`preterite_${suffix}` as CsvColumn] = verb.preterite?.[person];
     }
     records.push(record);
   }
   for (const preposition of source.prepositions) records.push({ type: 'preposition', german: preposition.german, usage: preposition.usage, case: preposition.usage === 'fixed' ? preposition.case : '' });
+  for (const item of source.adjectivesAndAdverbs) records.push({ type: item.kind, german: item.german, english: item.english, comparative: item.comparative, superlative: item.superlative });
   return [CSV_COLUMNS.join(','), ...records.map((record) => CSV_COLUMNS.map((column) => csvCell(record[column])).join(','))].join('\r\n');
 };
 
 export const vocabularyTemplateCsv = () => vocabularyToCsv({
   nouns: [{ id: 'example-noun', german: 'Apfel', english: 'apple', article: 'der', plural: 'Äpfel' }],
-  verbs: [{ id: 'example-verb', infinitive: 'lernen', english: 'to learn', present: { ich: 'lerne', du: 'lernst', erSieEs: 'lernt', wir: 'lernen', ihr: 'lernt', sieSie: 'lernen' }, pastParticiple: 'gelernt', auxiliary: 'hat', case: 'Akkusativ', notes: 'Replace or remove these example rows.' }],
+  verbs: [{ id: 'example-verb', infinitive: 'lernen', english: 'to learn', present: { ich: 'lerne', du: 'lernst', erSieEs: 'lernt', ihr: 'lernt' }, pastParticiple: 'gelernt', auxiliary: 'hat', case: 'Akkusativ', notes: 'Replace or remove these example rows.' }],
   prepositions: [{ id: 'example-preposition', german: 'mit', usage: 'fixed', case: 'Dativ' }],
+  adjectivesAndAdverbs: [{ id: 'example-adjective', kind: 'adjective', german: 'gut', english: 'good', comparative: 'besser', superlative: 'am besten' }],
 });
 
 export const loadCollections = (): VocabularyCollection[] => {
   if (typeof window === 'undefined') return [];
   try {
     const parsed = JSON.parse(window.localStorage.getItem(COLLECTIONS_STORAGE_KEY) ?? '[]');
-    return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item.id === 'string' && typeof item.name === 'string' && item.vocabulary) : [];
+    return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item.id === 'string' && typeof item.name === 'string' && item.vocabulary).map((item) => ({ ...item, vocabulary: { ...item.vocabulary, adjectivesAndAdverbs: Array.isArray(item.vocabulary.adjectivesAndAdverbs) ? item.vocabulary.adjectivesAndAdverbs : [] } })) : [];
   } catch { return []; }
 };
 
@@ -179,10 +193,10 @@ export const saveCollections = (collections: VocabularyCollection[]) => {
 };
 
 export const mergeVocabularies = (sources: { id: string; vocabulary: Vocabulary }[]): MergedVocabularyResult => {
-  const merged = emptyVocabulary() as { nouns: Noun[]; verbs: Verb[]; prepositions: Preposition[] };
+  const merged = emptyVocabulary() as { nouns: Noun[]; verbs: Verb[]; prepositions: Preposition[]; adjectivesAndAdverbs: AdjectiveAdverb[] };
   const seen = new Set<string>();
   let duplicateCount = 0;
-  const add = <T extends Noun | Verb | Preposition>(type: 'noun' | 'verb' | 'preposition', item: T, target: T[], sourceId: string, german: string) => {
+  const add = <T extends Noun | Verb | Preposition | AdjectiveAdverb>(type: 'noun' | 'verb' | 'preposition' | 'adjective' | 'adverb', item: T, target: T[], sourceId: string, german: string) => {
     const key = `${type}:${normalize(german)}`;
     if (seen.has(key)) { duplicateCount += 1; return; }
     seen.add(key);
@@ -192,8 +206,9 @@ export const mergeVocabularies = (sources: { id: string; vocabulary: Vocabulary 
     source.vocabulary.nouns.forEach((item) => add('noun', item, merged.nouns, source.id, item.german));
     source.vocabulary.verbs.forEach((item) => add('verb', item, merged.verbs, source.id, item.infinitive));
     source.vocabulary.prepositions.forEach((item) => add('preposition', item, merged.prepositions, source.id, item.german));
+    source.vocabulary.adjectivesAndAdverbs.forEach((item) => add(item.kind, item, merged.adjectivesAndAdverbs, source.id, item.german));
   }
   return { vocabulary: merged, duplicateCount };
 };
 
-export const collectionWordCount = (source: Vocabulary) => source.nouns.length + source.verbs.length + source.prepositions.length;
+export const collectionWordCount = (source: Vocabulary) => source.nouns.length + source.verbs.length + source.prepositions.length + source.adjectivesAndAdverbs.length;

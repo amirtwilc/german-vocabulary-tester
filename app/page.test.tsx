@@ -66,6 +66,8 @@ describe('quiz interface', () => {
   it('imports a valid CSV as a named collection and saves it in the browser', async () => {
     const user = userEvent.setup();
     const { container } = render(<Home />);
+    expect(screen.queryByLabelText('Collection name')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Expand word collection' }));
     await user.type(screen.getByLabelText('Collection name'), 'Chapter 4');
     const csv = vocabularyTemplateCsv();
     const file = new File([csv], 'chapter-4.csv', { type: 'text/csv' });
@@ -73,7 +75,7 @@ describe('quiz interface', () => {
     const importInput = [...container.querySelectorAll<HTMLInputElement>('input[type="file"]')].at(-1)!;
     fireEvent.change(importInput, { target: { files: [file] } });
     await waitFor(() => expect(screen.getByText('Chapter 4')).toBeInTheDocument());
-    expect(screen.getByText(/was added with 3 valid words/)).toBeInTheDocument();
+    expect(screen.getByText(/was added with 4 valid words/)).toBeInTheDocument();
     expect(window.localStorage.getItem(COLLECTIONS_STORAGE_KEY)).toContain('Chapter 4');
   });
 });

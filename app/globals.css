@@ -26,7 +26,12 @@ button { -webkit-tap-highlight-color:transparent; }
 h1,h2,p { overflow-wrap:break-word; }
 .setup-card h1,.results-header h1 { margin:0; color:#172231; font-size:clamp(2.5rem,9vw,4rem); line-height:.98; letter-spacing:-.055em; }
 .lede { margin:18px 0 34px; color:#657386; font-size:1.05rem; line-height:1.6; }
-.collections-panel { margin-bottom:20px; padding:20px; border:1px solid #d8e2ea; border-radius:18px; background:#f8fafc; }
+.collections-collapsible { margin-top:18px; }
+.collection-toggle { width:100%; display:flex; align-items:center; justify-content:space-between; padding:14px 2px; border:0; border-top:1px solid #d4dfe8; color:#3f566c; background:transparent; font-size:.9rem; font-weight:750; cursor:pointer; }
+.collection-toggle:hover { color:#193b5a; }
+.collection-toggle svg { transition:transform .18s ease; }
+.collection-toggle svg.open { transform:rotate(180deg); }
+.collections-panel { padding:20px; border:1px solid #d8e2ea; border-radius:18px; background:#f8fafc; }
 .collections-heading-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px; }
 .collections-heading-row h2 { margin:0 0 4px; color:#26384b; font-size:1rem; }
 .collections-heading-row p { margin:0; color:#718092; font-size:.85rem; line-height:1.45; }
