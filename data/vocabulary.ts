@@ -3,6 +3,7 @@ export type Article = 'der' | 'die' | 'das';
 export type Auxiliary = 'hat' | 'ist';
 export type VerbCase = 'Akkusativ' | 'Dativ' | 'Akkusativ + Dativ';
 export type PresentPerson = 'ich' | 'du' | 'erSieEs' | 'wir' | 'ihr' | 'sieSie';
+export type PrepositionCase = 'Akkusativ' | 'Dativ';
 
 export interface Noun {
   id: string;
@@ -25,9 +26,14 @@ export interface Verb {
   notes?: string;
 }
 
+export type Preposition =
+  | { id: string; german: string; usage: 'fixed'; case: PrepositionCase }
+  | { id: string; german: string; usage: 'two-way' };
+
 export interface Vocabulary {
   nouns: readonly Noun[];
   verbs: readonly Verb[];
+  prepositions: readonly Preposition[];
 }
 
 export const vocabulary = {
@@ -55,5 +61,30 @@ export const vocabulary = {
     { id: 'koennen', infinitive: 'können', english: 'to be able to / can', present: { ich: 'kann', du: 'kannst', erSieEs: 'kann', wir: 'können', ihr: 'könnt', sieSie: 'können' }, preterite: { ich: 'konnte', du: 'konntest', erSieEs: 'konnte', wir: 'konnten', ihr: 'konntet', sieSie: 'konnten' } },
     { id: 'duerfen', infinitive: 'dürfen', english: 'to be allowed to / may', present: { ich: 'darf', du: 'darfst', erSieEs: 'darf', wir: 'dürfen', ihr: 'dürft', sieSie: 'dürfen' }, preterite: { ich: 'durfte', du: 'durftest', erSieEs: 'durfte', wir: 'durften', ihr: 'durftet', sieSie: 'durften' } },
     { id: 'sollen', infinitive: 'sollen', english: 'to be supposed to / should', present: { ich: 'soll', du: 'sollst', erSieEs: 'soll', wir: 'sollen', ihr: 'sollt', sieSie: 'sollen' }, preterite: { ich: 'sollte', du: 'solltest', erSieEs: 'sollte', wir: 'sollten', ihr: 'solltet', sieSie: 'sollten' } },
+  ],
+  prepositions: [
+    { id: 'aus', german: 'aus', usage: 'fixed', case: 'Dativ' },
+    { id: 'ausser', german: 'außer', usage: 'fixed', case: 'Dativ' },
+    { id: 'bei', german: 'bei', usage: 'fixed', case: 'Dativ' },
+    { id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' },
+    { id: 'nach', german: 'nach', usage: 'fixed', case: 'Dativ' },
+    { id: 'seit', german: 'seit', usage: 'fixed', case: 'Dativ' },
+    { id: 'von', german: 'von', usage: 'fixed', case: 'Dativ' },
+    { id: 'zu', german: 'zu', usage: 'fixed', case: 'Dativ' },
+    { id: 'gegenueber', german: 'gegenüber', usage: 'fixed', case: 'Dativ' },
+    { id: 'durch', german: 'durch', usage: 'fixed', case: 'Akkusativ' },
+    { id: 'fuer', german: 'für', usage: 'fixed', case: 'Akkusativ' },
+    { id: 'gegen', german: 'gegen', usage: 'fixed', case: 'Akkusativ' },
+    { id: 'ohne', german: 'ohne', usage: 'fixed', case: 'Akkusativ' },
+    { id: 'um', german: 'um', usage: 'fixed', case: 'Akkusativ' },
+    { id: 'an', german: 'an', usage: 'two-way' },
+    { id: 'auf', german: 'auf', usage: 'two-way' },
+    { id: 'hinter', german: 'hinter', usage: 'two-way' },
+    { id: 'in', german: 'in', usage: 'two-way' },
+    { id: 'neben', german: 'neben', usage: 'two-way' },
+    { id: 'ueber', german: 'über', usage: 'two-way' },
+    { id: 'unter', german: 'unter', usage: 'two-way' },
+    { id: 'vor', german: 'vor', usage: 'two-way' },
+    { id: 'zwischen', german: 'zwischen', usage: 'two-way' },
   ],
 } as const satisfies Vocabulary;

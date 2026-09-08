@@ -3,6 +3,7 @@
 import { type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, Languages, RotateCcw, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { vocabulary } from '@/data/vocabulary';
@@ -37,6 +38,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [feedback, setFeedback] = useState<boolean | null>(null);
   const [locked, setLocked] = useState(false);
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [emptyError, setEmptyError] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const activeStartedAt = useRef<number | null>(null);
@@ -56,6 +58,7 @@ export default function Home() {
     setAnswers([]);
     setFeedback(null);
     setLocked(false);
+    setExitDialogOpen(false);
     setEmptyError(false);
     accumulatedTime.current = 0;
     activeStartedAt.current = performance.now();
@@ -65,13 +68,13 @@ export default function Home() {
   }, [amount, maximum]);
 
   useEffect(() => {
-    if (screen !== 'quiz' || locked) return;
+    if (screen !== 'quiz' || locked || exitDialogOpen) return;
     const interval = window.setInterval(() => {
       const active = activeStartedAt.current === null ? 0 : performance.now() - activeStartedAt.current;
       setElapsed(accumulatedTime.current + active);
     }, 250);
     return () => window.clearInterval(interval);
-  }, [screen, locked]);
+  }, [screen, locked, exitDialogOpen]);
 
   useEffect(() => {
     if (questions[questionIndex]?.mode === 'text' && !locked) inputRef.current?.focus();
@@ -150,7 +153,21 @@ export default function Home() {
   const returnToSetup = () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     activeStartedAt.current = null;
+    setExitDialogOpen(false);
     setScreen('setup');
+  };
+
+  const handleExitDialogChange = (open: boolean) => {
+    if (open === exitDialogOpen) return;
+    if (open) {
+      const now = performance.now();
+      accumulatedTime.current += activeStartedAt.current === null ? 0 : now - activeStartedAt.current;
+      activeStartedAt.current = null;
+      setElapsed(accumulatedTime.current);
+    } else if (screen === 'quiz') {
+      activeStartedAt.current = performance.now();
+    }
+    setExitDialogOpen(open);
   };
 
   if (screen === 'setup') {
@@ -205,7 +222,19 @@ export default function Home() {
   return (
     <main className="quiz-shell">
       <header className="quiz-header">
-        <button className="back-button" onClick={returnToSetup} aria-label="Leave quiz"><ArrowLeft size={19} /></button>
+        <AlertDialog open={exitDialogOpen} onOpenChange={handleExitDialogChange}>
+          <AlertDialogTrigger render={<button className="back-button" aria-label="Leave quiz"><ArrowLeft size={19} /></button>} />
+          <AlertDialogContent className="exit-dialog">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Leave this quiz?</AlertDialogTitle>
+              <AlertDialogDescription>Your answers and progress in this quiz will be lost.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep studying</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={returnToSetup}>Leave quiz</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <div className="progress-wrap"><div><span>Question {questionIndex + 1}</span><span>of {questions.length}</span></div><Progress value={progress} /></div>
         <div className="timer" aria-label={`Elapsed time ${formatTime(elapsed)}`}><Clock3 size={14} /> {formatTime(elapsed)}</div>
       </header>

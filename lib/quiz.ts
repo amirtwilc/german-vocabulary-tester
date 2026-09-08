@@ -1,11 +1,11 @@
-import type { Noun, PresentPerson, Verb, Vocabulary } from '@/data/vocabulary';
+import type { Noun, Preposition, PresentPerson, Verb, Vocabulary } from '@/data/vocabulary';
 
 export type QuestionMode = 'choice' | 'text';
 
 export interface QuizQuestion {
   id: string;
   wordId: string;
-  wordType: 'noun' | 'verb';
+  wordType: 'noun' | 'verb' | 'preposition';
   word: string;
   prompt: string;
   eyebrow: string;
@@ -58,16 +58,28 @@ const verbBlock = (verb: Verb, pool: readonly Verb[], random: () => number): Qui
   ...verbCandidates(verb, random),
 ];
 
+const prepositionBlock = (preposition: Preposition, random: () => number): QuizQuestion[] => {
+  const base = { wordId: preposition.id, wordType: 'preposition' as const, word: preposition.german, mode: 'choice' as const, options: shuffle(['Akkusativ', 'Dativ'], random) };
+  if (preposition.usage === 'fixed') {
+    return [{ ...base, id: `${preposition.id}-case`, eyebrow: 'Preposition · grammatical case', prompt: `Which case does “${preposition.german}” take?`, correctAnswer: preposition.case }];
+  }
+  return [
+    { ...base, id: `${preposition.id}-movement`, eyebrow: 'Two-way preposition · movement', prompt: `Which case does “${preposition.german}” take with movement toward a destination?`, correctAnswer: 'Akkusativ' },
+    { ...base, id: `${preposition.id}-location`, eyebrow: 'Two-way preposition · no movement', prompt: `Which case does “${preposition.german}” take for a fixed location?`, correctAnswer: 'Dativ', options: shuffle(['Akkusativ', 'Dativ'], random) },
+  ];
+};
+
 const verbFactCount = (verb: Verb) => Object.keys(verb.present ?? {}).length + Object.keys(verb.preterite ?? {}).length + Number(Boolean(verb.pastParticiple)) + Number(Boolean(verb.auxiliary)) + Number(Boolean(verb.case));
 
-export const getMaximumQuestionCount = (source: Vocabulary) => source.nouns.length * 3 + source.verbs.reduce((sum, verb) => sum + 1 + Math.min(3, verbFactCount(verb)), 0);
+export const getMaximumQuestionCount = (source: Vocabulary) => source.nouns.length * 3 + source.verbs.reduce((sum, verb) => sum + 1 + Math.min(3, verbFactCount(verb)), 0) + source.prepositions.reduce((sum, preposition) => sum + (preposition.usage === 'two-way' ? 2 : 1), 0);
 
 export const createQuiz = (source: Vocabulary, amount: number, random: () => number = Math.random): QuizQuestion[] => {
   const words = shuffle([
     ...source.nouns.map((noun) => ({ type: 'noun' as const, value: noun })),
     ...source.verbs.map((verb) => ({ type: 'verb' as const, value: verb })),
+    ...source.prepositions.map((preposition) => ({ type: 'preposition' as const, value: preposition })),
   ], random);
-  const questions = words.flatMap((entry) => entry.type === 'noun' ? nounBlock(entry.value, source.nouns, random) : verbBlock(entry.value, source.verbs, random));
+  const questions = words.flatMap((entry) => entry.type === 'noun' ? nounBlock(entry.value, source.nouns, random) : entry.type === 'verb' ? verbBlock(entry.value, source.verbs, random) : prepositionBlock(entry.value, random));
   return questions.slice(0, Math.max(0, Math.min(Math.floor(amount), questions.length)));
 };
 

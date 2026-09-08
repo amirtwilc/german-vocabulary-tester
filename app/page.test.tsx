@@ -1,9 +1,9 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Home from '@/app/page';
 
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('quiz interface', () => {
   it('starts a quiz and shows progress', async () => {
@@ -12,6 +12,18 @@ describe('quiz interface', () => {
     await user.click(screen.getByTestId('start-quiz'));
     expect(screen.getByText(/Question 1/)).toBeInTheDocument();
     expect(screen.getByText(/of 20/)).toBeInTheDocument();
+  });
+
+  it('asks for confirmation before leaving an active quiz', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await user.click(screen.getByTestId('start-quiz'));
+    await user.click(screen.getByRole('button', { name: 'Leave quiz' }));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByText('Leave this quiz?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Keep studying' }));
+    expect(screen.queryByText('Leave this quiz?')).not.toBeInTheDocument();
+    expect(screen.getByText(/Question 1/)).toBeInTheDocument();
   });
 
   it('prevents an empty written answer and supports the German keypad', async () => {

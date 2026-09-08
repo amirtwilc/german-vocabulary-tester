@@ -12,6 +12,7 @@ const source = {
     { id: 'read', infinitive: 'lesen', english: 'to read', present: { ich: 'lese', wir: 'lesen' }, pastParticiple: 'gelesen', auxiliary: 'hat', case: 'Akkusativ' },
     { id: 'help', infinitive: 'helfen', english: 'to help', present: { ich: 'helfe' }, auxiliary: 'hat', case: 'Dativ' },
   ],
+  prepositions: [],
 } satisfies Vocabulary;
 
 describe('quiz generation', () => {
@@ -47,7 +48,7 @@ describe('quiz generation', () => {
   });
 
   it('creates written Präteritum questions from optional per-person forms', () => {
-    const modalOnly = { nouns: [], verbs: [{ id: 'can', infinitive: 'können', english: 'can', preterite: { ich: 'konnte', du: 'konntest', wir: 'konnten', ihr: 'konntet' } }] } satisfies Vocabulary;
+    const modalOnly = { nouns: [], verbs: [{ id: 'can', infinitive: 'können', english: 'can', preterite: { ich: 'konnte', du: 'konntest', wir: 'konnten', ihr: 'konntet' } }], prepositions: [] } satisfies Vocabulary;
     const quiz = createQuiz(modalOnly, 10, () => 0.5);
     expect(quiz).toHaveLength(4);
     expect(quiz.slice(1).every((question) => question.mode === 'text' && question.eyebrow === 'Verb · Präteritum')).toBe(true);
@@ -59,5 +60,16 @@ describe('quiz generation', () => {
     const existingIds = ['fahren', 'danken', 'bezahlen', 'essen', 'schlafen', 'helfen', 'lesen', 'sprechen'];
     expect(vocabulary.verbs.filter((verb) => modalIds.includes(verb.id)).every((verb) => 'preterite' in verb && Object.keys(verb.preterite).length === 6)).toBe(true);
     expect(vocabulary.verbs.filter((verb) => existingIds.includes(verb.id)).every((verb) => !('preterite' in verb))).toBe(true);
+  });
+
+  it('generates one fixed-case question and two movement questions for prepositions', () => {
+    const prepositionOnly = { nouns: [], verbs: [], prepositions: [{ id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' }, { id: 'auf', german: 'auf', usage: 'two-way' }] } satisfies Vocabulary;
+    const quiz = createQuiz(prepositionOnly, 10, () => 0.5);
+    expect(getMaximumQuestionCount(prepositionOnly)).toBe(3);
+    expect(quiz).toHaveLength(3);
+    expect(quiz.every((question) => question.wordType === 'preposition' && question.mode === 'choice')).toBe(true);
+    expect(quiz.find((question) => question.id === 'mit-case')?.correctAnswer).toBe('Dativ');
+    expect(quiz.find((question) => question.id === 'auf-movement')?.correctAnswer).toBe('Akkusativ');
+    expect(quiz.find((question) => question.id === 'auf-location')?.correctAnswer).toBe('Dativ');
   });
 });
