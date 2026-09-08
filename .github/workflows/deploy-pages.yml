@@ -35,6 +35,13 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}
 
+      - name: Prepare Pages artifact
+        run: |
+          mv "dist/client/$REPOSITORY_NAME/_next" dist/client/_next
+          rmdir "dist/client/$REPOSITORY_NAME"
+        env:
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
