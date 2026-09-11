@@ -50,6 +50,7 @@ import {
 import { vocabulary } from '@/data/vocabulary';
 import {
   collectionWordCount,
+  decodeVocabularyCsvBytes,
   loadCollections,
   MAX_CSV_BYTES,
   mergeVocabularies,
@@ -299,7 +300,7 @@ export default function Home() {
 
   const downloadCsv = (filename: string, contents: string) => {
     const url = URL.createObjectURL(
-      new Blob([contents], { type: 'text/csv;charset=utf-8' }),
+      new Blob(['\uFEFF', contents], { type: 'text/csv;charset=utf-8' }),
     );
     const link = document.createElement('a');
     link.href = url;
@@ -333,9 +334,9 @@ export default function Home() {
       });
       return;
     }
-    let contents: string;
+    let decoded: ReturnType<typeof decodeVocabularyCsvBytes>;
     try {
-      contents = await file.text();
+      decoded = decodeVocabularyCsvBytes(await file.arrayBuffer());
     } catch {
       setImportMessage({
         kind: 'error',
@@ -344,7 +345,15 @@ export default function Home() {
       });
       return;
     }
-    const result = parseVocabularyCsv(contents);
+    if (decoded.text === undefined) {
+      setImportMessage({
+        kind: 'error',
+        title: 'This CSV could not be read.',
+        details: [decoded.error ?? 'Export it as CSV UTF-8 and try again.'],
+      });
+      return;
+    }
+    const result = parseVocabularyCsv(decoded.text);
     if (!result.vocabulary) {
       setImportMessage({
         kind: 'error',
@@ -934,8 +943,10 @@ export default function Home() {
                     <p>
                       Rows can be nouns, verbs, prepositions, adjectives, or
                       adverbs. Download the template, replace its examples, then
-                      upload it here. Collections stay in this browser; download
-                      a copy to move them to another device.
+                      upload it here. Umlauts and ß are supported; CSV UTF-8 is
+                      recommended, and common Windows CSV encoding is accepted.
+                      Collections stay in this browser; download a copy to move
+                      them to another device.
                     </p>
                   </div>
                   <label className="collection-name-label">

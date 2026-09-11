@@ -25,6 +25,12 @@ export interface CsvImportResult {
   wordCount: number;
 }
 
+export interface CsvDecodeResult {
+  text?: string;
+  encoding?: 'utf-8' | 'windows-1252';
+  error?: string;
+}
+
 export interface MergedVocabularyResult {
   vocabulary: Vocabulary;
   duplicateCount: number;
@@ -215,6 +221,34 @@ const pickForms = (row: CsvRecord, tense: 'present' | 'preterite') => {
     if (value) forms[person] = value;
   }
   return Object.keys(forms).length ? forms : undefined;
+};
+
+export const decodeVocabularyCsvBytes = (
+  bytes: ArrayBuffer | Uint8Array,
+): CsvDecodeResult => {
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  try {
+    return {
+      text: new TextDecoder('utf-8', { fatal: true }).decode(data),
+      encoding: 'utf-8',
+    };
+  } catch {
+    try {
+      const text = new TextDecoder('windows-1252', { fatal: true }).decode(data);
+      if (text.includes('\uFFFD')) {
+        return {
+          error:
+            'The file contains characters that could not be decoded. Export it as CSV UTF-8 and try again.',
+        };
+      }
+      return { text, encoding: 'windows-1252' };
+    } catch {
+      return {
+        error:
+          'The file encoding is not supported. Export it as CSV UTF-8 and try again.',
+      };
+    }
+  }
 };
 
 export const parseVocabularyCsv = (text: string): CsvImportResult => {

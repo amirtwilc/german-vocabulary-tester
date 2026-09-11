@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   COLLECTIONS_STORAGE_KEY,
   CSV_COLUMNS,
+  decodeVocabularyCsvBytes,
   loadCollections,
   mergeVocabularies,
   parseVocabularyCsv,
@@ -49,6 +50,28 @@ const validCsv = [
 ].join('\n');
 
 describe('vocabulary CSV collections', () => {
+  it('decodes umlauts from UTF-8 and Windows-1252 CSV files', () => {
+    const utf8 = decodeVocabularyCsvBytes(
+      new TextEncoder().encode('schön,größer,für,ß'),
+    );
+    expect(utf8).toEqual({
+      text: 'schön,größer,für,ß',
+      encoding: 'utf-8',
+    });
+
+    const windows1252 = decodeVocabularyCsvBytes(
+      Uint8Array.from(
+        Array.from('schön,größer,für,ß', (character) =>
+          character.charCodeAt(0),
+        ),
+      ),
+    );
+    expect(windows1252).toEqual({
+      text: 'schön,größer,für,ß',
+      encoding: 'windows-1252',
+    });
+  });
+
   it('imports nouns, verbs, quoted cells, and prepositions', () => {
     const result = parseVocabularyCsv(validCsv);
     expect(result.errors).toEqual([]);

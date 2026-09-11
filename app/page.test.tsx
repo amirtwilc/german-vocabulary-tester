@@ -18,6 +18,9 @@ import { HIDDEN_QUESTIONS_STORAGE_KEY } from '@/lib/learning-preferences';
 const csvFile = (contents: string, name = 'vocabulary.csv') => {
   const file = new File([contents], name, { type: 'text/csv' });
   Object.defineProperty(file, 'text', { value: async () => contents });
+  Object.defineProperty(file, 'arrayBuffer', {
+    value: async () => new TextEncoder().encode(contents).buffer,
+  });
   return file;
 };
 
@@ -194,7 +197,7 @@ describe('quiz interface', () => {
     );
     await user.type(screen.getByLabelText('Collection name'), 'Unreadable');
     const file = new File([''], 'unreadable.csv', { type: 'text/csv' });
-    Object.defineProperty(file, 'text', {
+    Object.defineProperty(file, 'arrayBuffer', {
       value: async () => {
         throw new Error('read failed');
       },
