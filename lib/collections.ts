@@ -234,7 +234,9 @@ export const decodeVocabularyCsvBytes = (
     };
   } catch {
     try {
-      const text = new TextDecoder('windows-1252', { fatal: true }).decode(data);
+      const text = new TextDecoder('windows-1252', { fatal: true }).decode(
+        data,
+      );
       if (text.includes('\uFFFD')) {
         return {
           error:
