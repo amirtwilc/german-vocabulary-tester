@@ -72,10 +72,38 @@ describe('quiz interface', () => {
     expect(screen.queryByTestId('start-quiz')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('checkbox', { name: 'Prepositions' }));
-    expect(await screen.findByText('25 available')).toBeInTheDocument();
+    expect(
+      await screen.findByText('25 available · 0 hidden'),
+    ).toBeInTheDocument();
     expect(window.localStorage.getItem(WORD_TYPES_STORAGE_KEY)).toContain(
       'preposition',
     );
+  });
+
+  it('counts hidden questions only for enabled word types', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      HIDDEN_QUESTIONS_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        questions: [
+          {
+            key: 'v1:verb:helfen:present:ich',
+            word: 'helfen',
+            wordType: 'verb',
+            prompt: 'Conjugate “helfen” for ich.',
+            hiddenAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+    render(<Home />);
+    expect(await screen.findByText(/1 hidden/)).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Word types control' }),
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'Verbs' }));
+    expect(screen.getByText(/0 hidden/)).toBeInTheDocument();
   });
 
   it('shows a gapped preposition diagram in the quiz and a complete one in review', async () => {

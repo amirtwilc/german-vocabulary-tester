@@ -197,6 +197,13 @@ export default function Home() {
     () => new Set(hiddenQuestions.map((question) => question.key)),
     [hiddenQuestions],
   );
+  const activeHiddenQuestionCount = useMemo(
+    () =>
+      hiddenQuestions.filter((question) =>
+        enabledWordTypes.includes(question.wordType),
+      ).length,
+    [enabledWordTypes, hiddenQuestions],
+  );
   const maximum = useMemo(
     () => getMaximumQuestionCount(activeVocabulary, hiddenQuestionKeys),
     [activeVocabulary, hiddenQuestionKeys],
@@ -766,10 +773,7 @@ export default function Home() {
                 <div className="range-labels">
                   <span>1</span>
                   <span>
-                    {maximum} available
-                    {hiddenQuestions.length
-                      ? ` · ${hiddenQuestions.length} hidden`
-                      : ''}
+                    {maximum} available · {activeHiddenQuestionCount} hidden
                   </span>
                 </div>
               </div>
