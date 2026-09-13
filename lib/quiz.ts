@@ -1,10 +1,15 @@
 import type {
   AdjectiveAdverb,
+  CanonicalPrepositionCategory,
   Noun,
   Preposition,
   PresentPerson,
   Verb,
   Vocabulary,
+} from '@/data/vocabulary';
+import {
+  CANONICAL_PREPOSITION_GROUPS,
+  getCanonicalPreposition,
 } from '@/data/vocabulary';
 
 export type QuestionMode = 'choice' | 'text';
@@ -22,6 +27,10 @@ export interface QuizQuestion {
   answerPrefix?: string;
   options?: string[];
   notes?: string;
+  prepositionDiagram?: {
+    hiddenWords: string[];
+    highlightedCategory: CanonicalPrepositionCategory;
+  };
 }
 type RawQuizQuestion = Omit<QuizQuestion, 'questionKey'>;
 
@@ -55,6 +64,7 @@ const questionFacet = (id: string) => {
       'participle',
       'auxiliary',
       'case',
+      'category',
       'movement',
       'location',
       'comparative',
@@ -297,6 +307,32 @@ const prepositionBlock = (
   preposition: Preposition,
   random: () => number,
 ): RawQuizQuestion[] => {
+  const canonical = getCanonicalPreposition(preposition.german);
+  if (canonical) {
+    const hiddenWords = CANONICAL_PREPOSITION_GROUPS.map(
+      ({ category, words }) =>
+        category === canonical.category
+          ? canonical.german
+          : (words[Math.floor(random() * words.length)] ?? words[0]),
+    );
+    return [
+      {
+        id: `${preposition.id}-category`,
+        wordId: preposition.id,
+        wordType: 'preposition',
+        word: canonical.german,
+        mode: 'choice',
+        eyebrow: 'Preposition · grammatical case',
+        prompt: `What is the missing word that takes ${canonical.category}?`,
+        correctAnswer: canonical.german,
+        options: shuffle(hiddenWords, random),
+        prepositionDiagram: {
+          hiddenWords,
+          highlightedCategory: canonical.category,
+        },
+      },
+    ];
+  }
   const base = {
     wordId: preposition.id,
     wordType: 'preposition' as const,

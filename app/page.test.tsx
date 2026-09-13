@@ -13,7 +13,10 @@ import {
   COLLECTIONS_STORAGE_KEY,
   vocabularyTemplateCsv,
 } from '@/lib/collections';
-import { HIDDEN_QUESTIONS_STORAGE_KEY } from '@/lib/learning-preferences';
+import {
+  HIDDEN_QUESTIONS_STORAGE_KEY,
+  WORD_TYPES_STORAGE_KEY,
+} from '@/lib/learning-preferences';
 
 const csvFile = (contents: string, name = 'vocabulary.csv') => {
   const file = new File([contents], name, { type: 'text/csv' });
@@ -43,6 +46,76 @@ describe('quiz interface', () => {
     await user.click(screen.getByTestId('start-quiz'));
     expect(screen.getByText(/Question 1/)).toBeInTheDocument();
     expect(screen.getByText(/of 20/)).toBeInTheDocument();
+  });
+
+  it('filters question availability by persisted word-type controls', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await user.click(
+      screen.getByRole('button', { name: 'Word types control' }),
+    );
+    for (const label of [
+      'Verbs',
+      'Nouns',
+      'Adjectives',
+      'Prepositions',
+      'Adverbs',
+    ]) {
+      const checkbox = screen.getByRole('checkbox', { name: label });
+      expect(checkbox).toBeChecked();
+      await user.click(checkbox);
+    }
+    expect(screen.getByText('0 questions available.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Select at least one word type to start a quiz.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('start-quiz')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Prepositions' }));
+    expect(await screen.findByText('25 available')).toBeInTheDocument();
+    expect(window.localStorage.getItem(WORD_TYPES_STORAGE_KEY)).toContain(
+      'preposition',
+    );
+  });
+
+  it('shows a gapped preposition diagram in the quiz and a complete one in review', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    window.localStorage.setItem(
+      WORD_TYPES_STORAGE_KEY,
+      JSON.stringify({ version: 1, enabledWordTypes: ['preposition'] }),
+    );
+    const { container } = render(<Home />);
+    await act(async () => vi.runOnlyPendingTimers());
+    fireEvent.change(
+      container.querySelector<HTMLInputElement>('input[type="range"]')!,
+      { target: { value: '1' } },
+    );
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    const quizDiagram = screen.getByRole('img', {
+      name: /Accusative, highlighted:/,
+    });
+    expect(
+      quizDiagram.getAttribute('aria-label')?.match(/missing word/g),
+    ).toHaveLength(3);
+    expect(quizDiagram.querySelectorAll('.is-missing')).toHaveLength(3);
+    expect(quizDiagram.querySelectorAll('.is-highlighted')).toHaveLength(1);
+    expect(quizDiagram.querySelector('.is-highlighted h2')).toHaveTextContent(
+      'Accusative',
+    );
+    expect(container.querySelectorAll('.choice-button')).toHaveLength(3);
+    fireEvent.click(
+      container.querySelector<HTMLButtonElement>('.choice-button')!,
+    );
+    await act(async () => vi.advanceTimersByTime(1000));
+    const reviewDiagram = screen.getByRole('img', {
+      name: /Accusative: bis, durch, für, gegen, ohne, um/,
+    });
+    expect(reviewDiagram.querySelectorAll('.is-missing')).toHaveLength(0);
+    expect(reviewDiagram.querySelectorAll('.is-highlighted')).toHaveLength(0);
+    expect(reviewDiagram.querySelectorAll('.preposition-word')).toHaveLength(
+      25,
+    );
   });
 
   it('asks for confirmation before leaving an active quiz', async () => {

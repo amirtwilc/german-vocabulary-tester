@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Vocabulary } from '@/data/vocabulary';
-import { vocabulary } from '@/data/vocabulary';
+import { CANONICAL_PREPOSITION_GROUPS, vocabulary } from '@/data/vocabulary';
 import {
   createQuiz,
   getMaximumQuestionCount,
@@ -153,7 +153,7 @@ describe('quiz generation', () => {
     ).toBe(true);
   });
 
-  it('generates one fixed-case question and two movement questions for prepositions', () => {
+  it('generates one visual category question for each canonical preposition', () => {
     const prepositionOnly = {
       nouns: [],
       verbs: [],
@@ -164,44 +164,91 @@ describe('quiz generation', () => {
       adjectivesAndAdverbs: [],
     } satisfies Vocabulary;
     const quiz = createQuiz(prepositionOnly, 10, () => 0.5);
-    expect(getMaximumQuestionCount(prepositionOnly)).toBe(3);
-    expect(quiz).toHaveLength(3);
+    expect(getMaximumQuestionCount(prepositionOnly)).toBe(2);
+    expect(quiz).toHaveLength(2);
     expect(
       quiz.every(
         (question) =>
           question.wordType === 'preposition' && question.mode === 'choice',
       ),
     ).toBe(true);
-    expect(
-      quiz.find((question) => question.id === 'mit-case')?.correctAnswer,
-    ).toBe('Dativ');
-    expect(
-      quiz.find((question) => question.id === 'auf-movement')?.correctAnswer,
-    ).toBe('Akkusativ');
-    expect(
-      quiz.find((question) => question.id === 'auf-location')?.correctAnswer,
-    ).toBe('Dativ');
+    const mit = quiz.find((question) => question.id === 'mit-category')!;
+    expect(mit.correctAnswer).toBe('mit');
+    expect(mit.prompt).toContain('Dative');
+    expect(mit.options).toHaveLength(3);
+    expect(mit.prepositionDiagram?.hiddenWords).toEqual(
+      expect.arrayContaining(mit.options!),
+    );
+    expect(mit.prepositionDiagram?.hiddenWords).toHaveLength(3);
+    const auf = quiz.find((question) => question.id === 'auf-category')!;
+    expect(auf.correctAnswer).toBe('auf');
+    expect(auf.prompt).toContain('Accusative + Dative');
   });
 
-  it('shuffles the two halves of a two-way preposition independently', () => {
+  it('uses canonical metadata for known imports and legacy questions for unknown imports', () => {
     const mixedPrepositions = {
       nouns: [],
       verbs: [],
       prepositions: [
-        { id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' },
-        { id: 'durch', german: 'durch', usage: 'fixed', case: 'Akkusativ' },
-        { id: 'vor', german: 'vor', usage: 'two-way' },
+        { id: 'wrong-mit', german: 'MIT', usage: 'fixed', case: 'Akkusativ' },
+        { id: 'along', german: 'entlang', usage: 'fixed', case: 'Akkusativ' },
+        { id: 'inside', german: 'innerhalb', usage: 'two-way' },
       ],
       adjectivesAndAdverbs: [],
     } satisfies Vocabulary;
-    const quiz = createQuiz(mixedPrepositions, 4, () => 0.5);
-    const movementIndex = quiz.findIndex(
-      (question) => question.id === 'vor-movement',
+    const quiz = createQuiz(mixedPrepositions, 10, () => 0.5);
+    expect(quiz).toHaveLength(4);
+    expect(
+      quiz.find((question) => question.id === 'wrong-mit-category'),
+    ).toMatchObject({
+      word: 'mit',
+      correctAnswer: 'mit',
+    });
+    expect(
+      quiz.find((question) => question.id === 'along-case'),
+    ).not.toHaveProperty('prepositionDiagram');
+    expect(quiz.map((question) => question.id)).toEqual(
+      expect.arrayContaining(['inside-movement', 'inside-location']),
     );
-    const locationIndex = quiz.findIndex(
-      (question) => question.id === 'vor-location',
-    );
-    expect(Math.abs(movementIndex - locationIndex)).toBeGreaterThan(1);
+  });
+
+  it('defines the complete 25-word canonical preposition diagram', () => {
+    expect(CANONICAL_PREPOSITION_GROUPS).toEqual([
+      {
+        category: 'Accusative',
+        words: ['bis', 'durch', 'für', 'gegen', 'ohne', 'um'],
+      },
+      {
+        category: 'Accusative + Dative',
+        words: [
+          'an',
+          'auf',
+          'hinter',
+          'in',
+          'neben',
+          'über',
+          'unter',
+          'vor',
+          'zwischen',
+        ],
+      },
+      {
+        category: 'Dative',
+        words: [
+          'ab',
+          'aus',
+          'außer',
+          'bei',
+          'gegenüber',
+          'mit',
+          'nach',
+          'seit',
+          'von',
+          'zu',
+        ],
+      },
+    ]);
+    expect(vocabulary.prepositions).toHaveLength(25);
   });
 
   it('creates written comparative and superlative questions for adjectives and adverbs', () => {

@@ -4,6 +4,10 @@ export type Auxiliary = 'hat' | 'ist';
 export type VerbCase = 'Akkusativ' | 'Dativ' | 'Akkusativ + Dativ';
 export type PresentPerson = 'ich' | 'du' | 'erSieEs' | 'wir' | 'ihr' | 'sieSie';
 export type PrepositionCase = 'Akkusativ' | 'Dativ';
+export type CanonicalPrepositionCategory =
+  | 'Accusative'
+  | 'Dative'
+  | 'Accusative + Dative';
 
 export interface Noun {
   id: string;
@@ -38,6 +42,96 @@ export interface AdjectiveAdverb {
 export type Preposition =
   | { id: string; german: string; usage: 'fixed'; case: PrepositionCase }
   | { id: string; german: string; usage: 'two-way' };
+
+export const CANONICAL_PREPOSITION_GROUPS = [
+  {
+    category: 'Accusative',
+    words: ['bis', 'durch', 'für', 'gegen', 'ohne', 'um'],
+  },
+  {
+    category: 'Accusative + Dative',
+    words: [
+      'an',
+      'auf',
+      'hinter',
+      'in',
+      'neben',
+      'über',
+      'unter',
+      'vor',
+      'zwischen',
+    ],
+  },
+  {
+    category: 'Dative',
+    words: [
+      'ab',
+      'aus',
+      'außer',
+      'bei',
+      'gegenüber',
+      'mit',
+      'nach',
+      'seit',
+      'von',
+      'zu',
+    ],
+  },
+] as const satisfies readonly {
+  category: CanonicalPrepositionCategory;
+  words: readonly string[];
+}[];
+
+const canonicalId = (word: string) =>
+  word
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+
+export const normalizeCanonicalPreposition = (word: string) =>
+  word
+    .trim()
+    .toLocaleLowerCase('de-DE')
+    .normalize('NFC')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+
+export interface CanonicalPreposition {
+  german: string;
+  category: CanonicalPrepositionCategory;
+}
+
+export const CANONICAL_PREPOSITIONS: readonly Preposition[] =
+  CANONICAL_PREPOSITION_GROUPS.flatMap(({ category, words }) =>
+    words.map(
+      (german): Preposition =>
+        category === 'Accusative + Dative'
+          ? { id: canonicalId(german), german, usage: 'two-way' }
+          : {
+              id: canonicalId(german),
+              german,
+              usage: 'fixed',
+              case: category === 'Accusative' ? 'Akkusativ' : 'Dativ',
+            },
+    ),
+  );
+
+const canonicalPrepositionByNormalizedWord = new Map(
+  CANONICAL_PREPOSITION_GROUPS.flatMap(({ category, words }) =>
+    words.map(
+      (german) =>
+        [normalizeCanonicalPreposition(german), { german, category }] as const,
+    ),
+  ),
+);
+
+export const getCanonicalPreposition = (
+  word: string,
+): CanonicalPreposition | undefined =>
+  canonicalPrepositionByNormalizedWord.get(normalizeCanonicalPreposition(word));
 
 export interface Vocabulary {
   nouns: readonly Noun[];
@@ -1369,31 +1463,7 @@ export const vocabulary = {
       case: 'Akkusativ',
     },
   ],
-  prepositions: [
-    { id: 'aus', german: 'aus', usage: 'fixed', case: 'Dativ' },
-    { id: 'ausser', german: 'außer', usage: 'fixed', case: 'Dativ' },
-    { id: 'bei', german: 'bei', usage: 'fixed', case: 'Dativ' },
-    { id: 'mit', german: 'mit', usage: 'fixed', case: 'Dativ' },
-    { id: 'nach', german: 'nach', usage: 'fixed', case: 'Dativ' },
-    { id: 'seit', german: 'seit', usage: 'fixed', case: 'Dativ' },
-    { id: 'von', german: 'von', usage: 'fixed', case: 'Dativ' },
-    { id: 'zu', german: 'zu', usage: 'fixed', case: 'Dativ' },
-    { id: 'gegenueber', german: 'gegenüber', usage: 'fixed', case: 'Dativ' },
-    { id: 'durch', german: 'durch', usage: 'fixed', case: 'Akkusativ' },
-    { id: 'fuer', german: 'für', usage: 'fixed', case: 'Akkusativ' },
-    { id: 'gegen', german: 'gegen', usage: 'fixed', case: 'Akkusativ' },
-    { id: 'ohne', german: 'ohne', usage: 'fixed', case: 'Akkusativ' },
-    { id: 'um', german: 'um', usage: 'fixed', case: 'Akkusativ' },
-    { id: 'an', german: 'an', usage: 'two-way' },
-    { id: 'auf', german: 'auf', usage: 'two-way' },
-    { id: 'hinter', german: 'hinter', usage: 'two-way' },
-    { id: 'in', german: 'in', usage: 'two-way' },
-    { id: 'neben', german: 'neben', usage: 'two-way' },
-    { id: 'ueber', german: 'über', usage: 'two-way' },
-    { id: 'unter', german: 'unter', usage: 'two-way' },
-    { id: 'vor', german: 'vor', usage: 'two-way' },
-    { id: 'zwischen', german: 'zwischen', usage: 'two-way' },
-  ],
+  prepositions: CANONICAL_PREPOSITIONS,
   adjectivesAndAdverbs: [
     {
       id: 'schoen',

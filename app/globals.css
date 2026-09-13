@@ -172,11 +172,130 @@ p {
 .hidden-questions-collapsible {
   margin-top: 2px;
 }
+.word-types-collapsible {
+  margin-top: 2px;
+}
 .hidden-questions-panel {
   padding: 20px;
   border: 1px solid #d8e2ea;
   border-radius: 18px;
   background: #f8fafc;
+}
+.word-types-panel {
+  padding: 18px 20px 20px;
+  border: 1px solid #d8e2ea;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+.word-types-panel > p {
+  margin: 0 0 14px;
+  color: #687b8e;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.word-type-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.word-type-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 43px;
+  padding: 9px 11px;
+  border: 1px solid #d8e2ea;
+  border-radius: 11px;
+  color: #334b61;
+  background: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.word-type-choice:has(input:checked) {
+  border-color: #9eb2c3;
+  background: #eef4f8;
+}
+.word-type-choice input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: #193b5a;
+}
+
+.preposition-diagram {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(5px, 1.5vw, 11px);
+  width: 100%;
+  padding: clamp(6px, 1.5vw, 10px);
+  overflow: hidden;
+  border: 1px solid #d4dfe8;
+  border-radius: 18px;
+  background: #f7fafc;
+}
+.preposition-group {
+  min-width: 0;
+  padding: clamp(8px, 2vw, 14px) clamp(4px, 1.3vw, 10px);
+  border-radius: 13px;
+}
+.preposition-group-accusative {
+  color: #7e302e;
+  background: #f9dedb;
+}
+.preposition-group-dative {
+  color: #285a70;
+  background: #dcecf3;
+}
+.preposition-group-accusative-dative {
+  color: #6c541d;
+  background: #f5e9bf;
+}
+.preposition-group.is-highlighted {
+  outline: 3px solid currentColor;
+  outline-offset: -3px;
+  box-shadow: 0 5px 18px rgba(23, 34, 49, 0.2);
+}
+.preposition-group h2 {
+  display: grid;
+  place-items: center;
+  min-height: 2.6em;
+  margin: 0 0 6px;
+  font-size: clamp(0.62rem, 2vw, 0.82rem);
+  font-weight: 850;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+.preposition-words {
+  display: grid;
+  gap: 2px;
+}
+.preposition-word {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: clamp(19px, 4vw, 24px);
+  overflow: hidden;
+  font-size: clamp(0.68rem, 2.5vw, 0.92rem);
+  font-weight: 800;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preposition-word.is-missing {
+  opacity: 0.72;
+}
+.missing-line {
+  width: min(76%, 72px);
+  border-bottom: 2px dashed currentColor;
+}
+.quiz-preposition-diagram {
+  margin: -14px 0 24px;
+}
+.review-preposition-diagram {
+  margin: 0 0 16px;
 }
 .hidden-heading {
   display: flex;
@@ -1068,6 +1187,12 @@ p {
   .hidden-group li button {
     align-self: flex-end;
   }
+  .word-types-panel {
+    padding: 15px;
+  }
+  .word-type-list {
+    grid-template-columns: 1fr;
+  }
   .quiz-shell {
     padding: 16px 12px 0;
     background: #f6f9fb;
@@ -1092,6 +1217,9 @@ p {
   }
   .question-card h1 {
     margin-bottom: 28px;
+  }
+  .quiz-preposition-diagram {
+    margin-top: -12px;
   }
   .choice-button {
     min-height: 64px;

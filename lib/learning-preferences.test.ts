@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  DEFAULT_ENABLED_WORD_TYPES,
+  filterVocabularyByWordTypes,
   hiddenQuestionFrom,
   HIDDEN_QUESTIONS_STORAGE_KEY,
+  loadEnabledWordTypes,
   loadHiddenQuestions,
+  saveEnabledWordTypes,
   saveHiddenQuestions,
+  WORD_TYPES_STORAGE_KEY,
 } from '@/lib/learning-preferences';
+import type { Vocabulary } from '@/data/vocabulary';
 import type { QuizQuestion } from '@/lib/quiz';
 
 const question: QuizQuestion = {
@@ -59,5 +65,51 @@ describe('hidden-question preferences', () => {
       reason: 'unavailable',
     });
     setItem.mockRestore();
+  });
+});
+
+describe('word-type preferences', () => {
+  it('defaults to all word types and persists a valid selection', () => {
+    expect(loadEnabledWordTypes()).toEqual(DEFAULT_ENABLED_WORD_TYPES);
+    saveEnabledWordTypes(['noun', 'adverb']);
+    expect(loadEnabledWordTypes()).toEqual(['noun', 'adverb']);
+  });
+
+  it('falls back to all word types for malformed or unsupported data', () => {
+    window.localStorage.setItem(
+      WORD_TYPES_STORAGE_KEY,
+      JSON.stringify({ version: 2, enabledWordTypes: ['noun'] }),
+    );
+    expect(loadEnabledWordTypes()).toEqual(DEFAULT_ENABLED_WORD_TYPES);
+    window.localStorage.setItem(
+      WORD_TYPES_STORAGE_KEY,
+      JSON.stringify({ version: 1, enabledWordTypes: ['phrase'] }),
+    );
+    expect(loadEnabledWordTypes()).toEqual(DEFAULT_ENABLED_WORD_TYPES);
+  });
+
+  it('filters adjectives and adverbs independently', () => {
+    const source = {
+      nouns: [
+        {
+          id: 'book',
+          german: 'Buch',
+          english: 'book',
+          plural: 'Bücher',
+          article: 'das',
+        },
+      ],
+      verbs: [],
+      prepositions: [],
+      adjectivesAndAdverbs: [
+        { id: 'good', kind: 'adjective', german: 'gut', english: 'good' },
+        { id: 'often', kind: 'adverb', german: 'oft', english: 'often' },
+      ],
+    } satisfies Vocabulary;
+    const filtered = filterVocabularyByWordTypes(source, ['adverb']);
+    expect(filtered.nouns).toEqual([]);
+    expect(filtered.adjectivesAndAdverbs).toEqual([
+      source.adjectivesAndAdverbs[1],
+    ]);
   });
 });

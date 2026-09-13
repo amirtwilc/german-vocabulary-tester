@@ -29,6 +29,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PrepositionDiagram } from '@/components/preposition-diagram';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,9 +62,14 @@ import {
   type VocabularyCollection,
 } from '@/lib/collections';
 import {
+  DEFAULT_ENABLED_WORD_TYPES,
+  filterVocabularyByWordTypes,
   hiddenQuestionFrom,
+  loadEnabledWordTypes,
   loadHiddenQuestions,
+  saveEnabledWordTypes,
   saveHiddenQuestions,
+  type EnabledWordType,
   type HiddenQuestion,
 } from '@/lib/learning-preferences';
 import {
@@ -102,6 +108,17 @@ interface ImportMessage {
   title: string;
   details?: string[];
 }
+
+const wordTypeOptions: readonly {
+  value: EnabledWordType;
+  label: string;
+}[] = [
+  { value: 'verb', label: 'Verbs' },
+  { value: 'noun', label: 'Nouns' },
+  { value: 'adjective', label: 'Adjectives' },
+  { value: 'preposition', label: 'Prepositions' },
+  { value: 'adverb', label: 'Adverbs' },
+];
 
 const formatTime = (milliseconds: number) => {
   const seconds = Math.floor(milliseconds / 1000);
@@ -144,7 +161,11 @@ export default function Home() {
   const [editingName, setEditingName] = useState('');
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [hiddenQuestionsOpen, setHiddenQuestionsOpen] = useState(false);
+  const [wordTypesOpen, setWordTypesOpen] = useState(false);
   const [hiddenQuestions, setHiddenQuestions] = useState<HiddenQuestion[]>([]);
+  const [enabledWordTypes, setEnabledWordTypes] = useState<EnabledWordType[]>([
+    ...DEFAULT_ENABLED_WORD_TYPES,
+  ]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<ImportMessage | null>(
     null,
@@ -168,7 +189,10 @@ export default function Home() {
       ]),
     [collections, selectedCollectionIds],
   );
-  const activeVocabulary = merged.vocabulary;
+  const activeVocabulary = useMemo(
+    () => filterVocabularyByWordTypes(merged.vocabulary, enabledWordTypes),
+    [enabledWordTypes, merged.vocabulary],
+  );
   const hiddenQuestionKeys = useMemo(
     () => new Set(hiddenQuestions.map((question) => question.key)),
     [hiddenQuestions],
@@ -227,6 +251,7 @@ export default function Home() {
         ...saved.map((collection) => collection.id),
       ]);
       setHiddenQuestions(loadHiddenQuestions());
+      setEnabledWordTypes(loadEnabledWordTypes());
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -286,6 +311,20 @@ export default function Home() {
     updateHiddenQuestions(
       hiddenQuestions.filter((question) => question.key !== key),
     );
+
+  const toggleWordType = (wordType: EnabledWordType) => {
+    const next = enabledWordTypes.includes(wordType)
+      ? enabledWordTypes.filter((item) => item !== wordType)
+      : wordTypeOptions
+          .map((option) => option.value)
+          .filter(
+            (item) => item === wordType || enabledWordTypes.includes(item),
+          );
+    setEnabledWordTypes(next);
+    const result = saveEnabledWordTypes(next);
+    if (!result.ok) setStorageError(storageErrorMessage(result.reason));
+    else setStorageError(null);
+  };
 
   const updateCollections = (next: VocabularyCollection[]) => {
     const result = saveCollections(next);
@@ -745,11 +784,20 @@ export default function Home() {
             </>
           ) : (
             <div className="empty-state">
-              <p>No collection selected.</p>
-              <span>
-                Select the default collection or import and select a CSV
-                collection.
-              </span>
+              <p>0 questions available.</p>
+              {!selectedCollectionIds.length ? (
+                <span>
+                  Select the default collection or import and select a CSV
+                  collection.
+                </span>
+              ) : !enabledWordTypes.length ? (
+                <span>Select at least one word type to start a quiz.</span>
+              ) : (
+                <span>
+                  No eligible questions remain. Restore hidden questions or
+                  choose another collection.
+                </span>
+              )}
             </div>
           )}
           <Collapsible
@@ -1116,6 +1164,40 @@ export default function Home() {
               </section>
             </CollapsibleContent>
           </Collapsible>
+          <Collapsible
+            className="word-types-collapsible"
+            open={wordTypesOpen}
+            onOpenChange={setWordTypesOpen}
+          >
+            <CollapsibleTrigger className="collection-toggle">
+              <span>Word types control</span>
+              <ChevronDown
+                className={wordTypesOpen ? 'open' : ''}
+                size={18}
+                aria-hidden="true"
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <section
+                className="word-types-panel"
+                aria-label="Word types control"
+              >
+                <p>Choose which kinds of words can appear in this quiz.</p>
+                <div className="word-type-list">
+                  {wordTypeOptions.map((option) => (
+                    <label className="word-type-choice" key={option.value}>
+                      <input
+                        type="checkbox"
+                        checked={enabledWordTypes.includes(option.value)}
+                        onChange={() => toggleWordType(option.value)}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            </CollapsibleContent>
+          </Collapsible>
           <p className="setup-note">
             Quiz results aren’t saved. Your imported collections are stored on
             this device.
@@ -1181,6 +1263,9 @@ export default function Home() {
                 )}
               </div>
               <h2>{record.question.prompt}</h2>
+              {record.question.prepositionDiagram && (
+                <PrepositionDiagram className="review-preposition-diagram" />
+              )}
               <dl>
                 <div>
                   <dt>Your answer</dt>
@@ -1283,6 +1368,13 @@ export default function Home() {
       >
         <div className="question-eyebrow">{current.eyebrow}</div>
         <h1 id="question-heading">{current.prompt}</h1>
+        {current.prepositionDiagram && (
+          <PrepositionDiagram
+            hiddenWords={current.prepositionDiagram.hiddenWords}
+            highlightedCategory={current.prepositionDiagram.highlightedCategory}
+            className="quiz-preposition-diagram"
+          />
+        )}
         {current.mode === 'choice' ? (
           <div className="choice-grid">
             {current.options?.map((option, optionIndex) => {
