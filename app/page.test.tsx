@@ -9,6 +9,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Home, { getCompletionHeading } from '@/app/page';
+import { vocabulary } from '@/data/vocabulary';
 import {
   COLLECTIONS_STORAGE_KEY,
   vocabularyTemplateCsv,
@@ -17,6 +18,38 @@ import {
   HIDDEN_QUESTIONS_STORAGE_KEY,
   WORD_TYPES_STORAGE_KEY,
 } from '@/lib/learning-preferences';
+import { createQuiz, type QuizQuestion } from '@/lib/quiz';
+
+const answerQuestion = (question: QuizQuestion, correct: boolean) => {
+  if (question.mode === 'choice') {
+    const choices = [
+      ...document.querySelectorAll<HTMLButtonElement>('.choice-button'),
+    ];
+    const matchingChoice = choices.find(
+      (choice) =>
+        choice.querySelector('.choice-content span:last-child')?.textContent ===
+        question.correctAnswer,
+    );
+    const choice = correct
+      ? matchingChoice
+      : choices.find((item) => item !== matchingChoice);
+    if (!choice) throw new Error('Expected a suitable answer choice');
+    fireEvent.click(choice);
+    return;
+  }
+  const input = screen.getByLabelText('Your answer');
+  fireEvent.change(input, {
+    target: { value: correct ? question.correctAnswer : 'definitely wrong' },
+  });
+  fireEvent.submit(input.closest('form')!);
+};
+
+const setQuizLength = (count: number) => {
+  fireEvent.change(
+    document.querySelector<HTMLInputElement>('input[type="range"]')!,
+    { target: { value: String(count) } },
+  );
+};
 
 const csvFile = (contents: string, name = 'vocabulary.csv') => {
   const file = new File([contents], name, { type: 'text/csv' });
@@ -32,6 +65,10 @@ afterEach(() => {
   window.localStorage.clear();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: undefined,
+  });
 });
 
 describe('quiz interface', () => {
@@ -73,7 +110,7 @@ describe('quiz interface', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Prepositions' }));
     expect(
-      await screen.findByText('25 available · 0 hidden'),
+      await screen.findByText('25 available · 0 mastered'),
     ).toBeInTheDocument();
     expect(window.localStorage.getItem(WORD_TYPES_STORAGE_KEY)).toContain(
       'preposition',
@@ -98,12 +135,12 @@ describe('quiz interface', () => {
       }),
     );
     render(<Home />);
-    expect(await screen.findByText(/1 hidden/)).toBeInTheDocument();
+    expect(await screen.findByText(/1 mastered/)).toBeInTheDocument();
     await user.click(
       screen.getByRole('button', { name: 'Word types control' }),
     );
     await user.click(screen.getByRole('checkbox', { name: 'Verbs' }));
-    expect(screen.getByText(/0 hidden/)).toBeInTheDocument();
+    expect(screen.getByText(/0 mastered/)).toBeInTheDocument();
   });
 
   it('shows a gapped preposition diagram in the quiz and a complete one in review', async () => {
@@ -175,6 +212,186 @@ describe('quiz interface', () => {
     fireEvent.keyDown(window, { key: '1' });
     expect(choices[0]).toHaveClass('selected');
     expect(choices.every((choice) => choice.disabled)).toBe(true);
+  });
+
+  it('offers mastery for five seconds after a correct answer', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+
+    expect(
+      screen.getByRole('button', { name: 'Master this question' }),
+    ).toHaveAttribute('aria-keyshortcuts', 'M');
+    expect(screen.getByText('Click or press M to master')).toBeInTheDocument();
+    expect(screen.getByText('5 seconds')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Correct');
+    expect(document.querySelector('.feedback-slot')).not.toHaveAttribute(
+      'aria-live',
+    );
+
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(screen.getByText('4 seconds')).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(3999));
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
+  });
+
+  it('continues after one second when the answer is incorrect', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, false);
+    expect(
+      screen.queryByRole('button', { name: 'Master this question' }),
+    ).not.toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(999));
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+  });
+
+  it('masters with the button or M and ignores modified mastery keys', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    const { unmount } = render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+    fireEvent.keyDown(window, { key: 'm', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'm', repeat: true });
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'M' });
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
+    expect(window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY)).toContain(
+      question.questionKey,
+    );
+
+    unmount();
+    window.localStorage.clear();
+    const [buttonQuestion] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(buttonQuestion, true);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Master this question' }),
+    );
+    expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
+  });
+
+  it('supports deliberate touch swipes without hijacking other gestures', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    const { container } = render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+    const card = container.querySelector<HTMLElement>('.question-card')!;
+
+    for (const gesture of [
+      { pointerType: 'touch', endX: 40, endY: 0 },
+      { pointerType: 'touch', endX: 80, endY: 70 },
+      { pointerType: 'mouse', endX: 100, endY: 0 },
+    ]) {
+      fireEvent.pointerDown(card, {
+        pointerId: 1,
+        pointerType: gesture.pointerType,
+        clientX: 0,
+        clientY: 0,
+      });
+      fireEvent.pointerUp(card, {
+        pointerId: 1,
+        pointerType: gesture.pointerType,
+        clientX: gesture.endX,
+        clientY: gesture.endY,
+      });
+      expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    }
+
+    fireEvent.pointerDown(card, {
+      pointerId: 2,
+      pointerType: 'pen',
+      clientX: 10,
+      clientY: 10,
+    });
+    fireEvent.pointerUp(card, {
+      pointerId: 2,
+      pointerType: 'pen',
+      clientX: 80,
+      clientY: 15,
+    });
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
+  });
+
+  it('advances without mastering on a deliberate left swipe', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    const { container } = render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+    const card = container.querySelector<HTMLElement>('.question-card')!;
+    fireEvent.pointerDown(card, {
+      pointerId: 1,
+      pointerType: 'touch',
+      clientX: 100,
+      clientY: 10,
+    });
+    fireEvent.pointerUp(card, {
+      pointerId: 1,
+      pointerType: 'touch',
+      clientX: 20,
+      clientY: 15,
+    });
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
+    expect(
+      window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY),
+    ).toBeNull();
+  });
+
+  it('adapts the mastery hint when the primary pointer changes', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const listeners = new Set<() => void>();
+    const mediaQuery = {
+      matches: false,
+      addEventListener: (_type: string, listener: () => void) =>
+        listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) =>
+        listeners.delete(listener),
+    };
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: () => mediaQuery,
+    });
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+    expect(screen.getByText('Click or press M to master')).toBeInTheDocument();
+    await act(async () => {
+      mediaQuery.matches = true;
+      listeners.forEach((listener) => listener());
+    });
+    expect(
+      screen.getByText('Tap, swipe right to master, or left for next'),
+    ).toBeInTheDocument();
   });
 
   it('prevents an empty written answer and supports the German keypad', async () => {
@@ -339,7 +556,58 @@ describe('quiz interface', () => {
     expect(screen.getAllByText('Correct answer')).toHaveLength(3);
   });
 
-  it('shows every hidden question and lets the user restore one', async () => {
+  it('lets the user skip mastery and change mastery from results', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
+    expect(
+      screen.getByText('0 mastered questions in total'),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Master this question' }),
+    );
+    expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
+    expect(
+      screen.getByText('1 mastered question in total'),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Practise this question again' }),
+    );
+    expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
+    expect(
+      screen.getByText('0 mastered questions in total'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not count mastery when browser storage rejects it', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, true);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Master this question' }),
+    );
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Browser storage is full',
+    );
+  });
+
+  it('shows every mastered question and lets the user practise one again', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
       HIDDEN_QUESTIONS_STORAGE_KEY,
@@ -358,14 +626,21 @@ describe('quiz interface', () => {
     );
     render(<Home />);
     const trigger = await screen.findByRole('button', {
-      name: 'Hidden questions (1)',
+      name: 'Mastered questions (1)',
     });
+    expect(
+      screen.getByText(
+        'Quiz results aren’t saved. Mastered questions and imported collections are stored on this device.',
+      ),
+    ).toBeInTheDocument();
     await user.click(trigger);
     expect(screen.getByText('Conjugate “helfen” for ich.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Restore' }));
+    await user.click(screen.getByRole('button', { name: 'Practise again' }));
     expect(
-      screen.getByRole('button', { name: 'Hidden questions (0)' }),
+      screen.getByRole('button', { name: 'Mastered questions (0)' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/No questions are hidden yet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No questions are mastered yet/),
+    ).toBeInTheDocument();
   });
 });
