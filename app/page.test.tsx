@@ -13,6 +13,8 @@ import Home, { getCompletionHeading } from '@/app/page';
 import { vocabulary } from '@/data/vocabulary';
 import {
   COLLECTIONS_STORAGE_KEY,
+  parseVocabularyCsv,
+  SELECTED_COLLECTIONS_STORAGE_KEY,
   vocabularyTemplateCsv,
 } from '@/lib/collections';
 import {
@@ -73,6 +75,58 @@ afterEach(() => {
 });
 
 describe('quiz interface', () => {
+  it('remembers the last selected collections after a page refresh', async () => {
+    const user = userEvent.setup();
+    const customVocabulary = parseVocabularyCsv(vocabularyTemplateCsv())
+      .vocabulary!;
+    window.localStorage.setItem(
+      COLLECTIONS_STORAGE_KEY,
+      JSON.stringify(
+        ['Chapter 4', 'Chapter 5'].map((name, index) => ({
+          id: `chapter-${index + 4}`,
+          name,
+          vocabulary: customVocabulary,
+          createdAt: '2026-09-15',
+          updatedAt: '2026-09-15',
+        })),
+      ),
+    );
+
+    const firstPage = render(<Home />);
+    await user.click(
+      screen.getByRole('button', { name: 'Expand word collection' }),
+    );
+    expect(
+      await screen.findByRole('checkbox', { name: 'Use Chapter 5' }),
+    ).toBeChecked();
+    await user.click(screen.getByRole('checkbox', { name: 'Use Chapter 5' }));
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Use default collection' }),
+    );
+    await waitFor(() =>
+      expect(
+        JSON.parse(
+          window.localStorage.getItem(SELECTED_COLLECTIONS_STORAGE_KEY)!,
+        ),
+      ).toEqual({ version: 1, ids: ['chapter-4'] }),
+    );
+
+    firstPage.unmount();
+    render(<Home />);
+    await user.click(
+      screen.getByRole('button', { name: 'Expand word collection' }),
+    );
+    expect(
+      await screen.findByRole('checkbox', { name: 'Use Chapter 4' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'Use Chapter 5' }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'Use default collection' }),
+    ).not.toBeChecked();
+  });
+
   it('celebrates only a perfect score as amazing', () => {
     expect(getCompletionHeading(20, 20)).toBe('Amazing.');
     expect(getCompletionHeading(19, 20)).toBe('Nice work.');

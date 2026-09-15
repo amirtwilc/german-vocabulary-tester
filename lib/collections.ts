@@ -38,6 +38,8 @@ export interface MergedVocabularyResult {
 }
 
 export const COLLECTIONS_STORAGE_KEY = 'wort-fuer-wort.collections.v1';
+export const SELECTED_COLLECTIONS_STORAGE_KEY =
+  'wort-fuer-wort.selected-collections.v1';
 export const MAX_CSV_BYTES = 2 * 1024 * 1024;
 
 export const CSV_COLUMNS = [
@@ -579,6 +581,36 @@ export const saveCollections = (collections: VocabularyCollection[]) => {
     JSON.stringify(collections),
   );
 };
+
+export const loadSelectedCollectionIds = (
+  collections: readonly Pick<VocabularyCollection, 'id'>[],
+): string[] => {
+  const allIds = ['default', ...collections.map((collection) => collection.id)];
+  if (typeof window === 'undefined') return allIds;
+  try {
+    const raw = window.localStorage.getItem(SELECTED_COLLECTIONS_STORAGE_KEY);
+    if (raw === null) return allIds;
+    const stored = JSON.parse(raw) as {
+      version?: unknown;
+      ids?: unknown;
+    } | null;
+    if (
+      stored?.version !== 1 ||
+      !Array.isArray(stored.ids) ||
+      !stored.ids.every((id) => typeof id === 'string')
+    )
+      return allIds;
+    return allIds.filter((id) => (stored.ids as string[]).includes(id));
+  } catch {
+    return allIds;
+  }
+};
+
+export const saveSelectedCollectionIds = (ids: string[]) =>
+  writeLocalStorage(
+    SELECTED_COLLECTIONS_STORAGE_KEY,
+    JSON.stringify({ version: 1, ids }),
+  );
 
 export const mergeVocabularies = (
   sources: { id: string; vocabulary: Vocabulary }[],

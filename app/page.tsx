@@ -54,10 +54,12 @@ import {
   collectionWordCount,
   decodeVocabularyCsvBytes,
   loadCollections,
+  loadSelectedCollectionIds,
   MAX_CSV_BYTES,
   mergeVocabularies,
   parseVocabularyCsv,
   saveCollections,
+  saveSelectedCollectionIds,
   vocabularyTemplateCsv,
   vocabularyToCsv,
   type VocabularyCollection,
@@ -157,6 +159,7 @@ export default function Home() {
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([
     'default',
   ]);
+  const selectedCollectionIdsRef = useRef<string[]>(['default']);
   const [collectionName, setCollectionName] = useState('');
   const [editingCollectionId, setEditingCollectionId] = useState<string | null>(
     null,
@@ -272,10 +275,9 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       const saved = loadCollections();
       setCollections(saved);
-      setSelectedCollectionIds([
-        'default',
-        ...saved.map((collection) => collection.id),
-      ]);
+      const savedSelection = loadSelectedCollectionIds(saved);
+      selectedCollectionIdsRef.current = savedSelection;
+      setSelectedCollectionIds(savedSelection);
       setHiddenQuestions(loadHiddenQuestions());
       setEnabledWordTypes(loadEnabledWordTypes());
     }, 0);
@@ -423,8 +425,17 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const updateSelectedCollectionIds = (next: string[]) => {
+    selectedCollectionIdsRef.current = next;
+    setSelectedCollectionIds(next);
+    const result = saveSelectedCollectionIds(next);
+    if (!result.ok) setStorageError(storageErrorMessage(result.reason));
+    else setStorageError(null);
+  };
+
   const toggleCollection = (id: string) => {
-    setSelectedCollectionIds((current) =>
+    const current = selectedCollectionIdsRef.current;
+    updateSelectedCollectionIds(
       current.includes(id)
         ? current.filter((item) => item !== id)
         : [...current, id],
@@ -534,7 +545,7 @@ export default function Home() {
       },
     ];
     if (!updateCollections(next)) return;
-    setSelectedCollectionIds((current) => [...current, id]);
+    updateSelectedCollectionIds([...selectedCollectionIdsRef.current, id]);
     setCollectionName('');
     setImportMessage({
       kind: 'success',
@@ -561,8 +572,8 @@ export default function Home() {
     if (!collection) return;
     if (!updateCollections(collections.filter((item) => item.id !== id)))
       return;
-    setSelectedCollectionIds((current) =>
-      current.filter((item) => item !== id),
+    updateSelectedCollectionIds(
+      selectedCollectionIdsRef.current.filter((item) => item !== id),
     );
     setPendingDeleteId(null);
     setImportMessage({

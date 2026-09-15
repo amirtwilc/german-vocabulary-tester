@@ -4,9 +4,12 @@ import {
   CSV_COLUMNS,
   decodeVocabularyCsvBytes,
   loadCollections,
+  loadSelectedCollectionIds,
   mergeVocabularies,
   parseVocabularyCsv,
   saveCollections,
+  saveSelectedCollectionIds,
+  SELECTED_COLLECTIONS_STORAGE_KEY,
   vocabularyToCsv,
 } from '@/lib/collections';
 import type { Vocabulary } from '@/data/vocabulary';
@@ -51,6 +54,23 @@ const validCsv = [
 ].join('\n');
 
 describe('vocabulary CSV collections', () => {
+  it('defaults to all collections but preserves an intentionally empty selection', () => {
+    const collections = [{ id: 'chapter-4' }, { id: 'chapter-5' }];
+    expect(loadSelectedCollectionIds(collections)).toEqual([
+      'default',
+      'chapter-4',
+      'chapter-5',
+    ]);
+    expect(saveSelectedCollectionIds([]).ok).toBe(true);
+    expect(loadSelectedCollectionIds(collections)).toEqual([]);
+    window.localStorage.setItem(
+      SELECTED_COLLECTIONS_STORAGE_KEY,
+      JSON.stringify({ version: 1, ids: ['chapter-5', 'removed'] }),
+    );
+    expect(loadSelectedCollectionIds(collections)).toEqual(['chapter-5']);
+    window.localStorage.removeItem(SELECTED_COLLECTIONS_STORAGE_KEY);
+  });
+
   it('decodes umlauts from UTF-8 and Windows-1252 CSV files', () => {
     const utf8 = decodeVocabularyCsvBytes(
       new TextEncoder().encode('schön,größer,für,ß'),
