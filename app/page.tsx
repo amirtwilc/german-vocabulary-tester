@@ -81,6 +81,13 @@ import {
   isCorrectAnswer,
   type QuizQuestion,
 } from '@/lib/quiz';
+import {
+  clearQuizSession,
+  loadQuizSession,
+  saveQuizProgress,
+  startQuizSession,
+  type SavedQuizSession,
+} from '@/lib/quiz-session';
 
 declare global {
   interface Document {
@@ -239,6 +246,10 @@ export default function Home() {
   }, [hiddenQuestions]);
   const defaultAmount = Math.min(20, maximum);
   const [screen, setScreen] = useState<Screen>('setup');
+  const [savedSession, setSavedSession] = useState<SavedQuizSession | null>(
+    null,
+  );
+  const [newQuizDialogOpen, setNewQuizDialogOpen] = useState(false);
   const [amount, setAmount] = useState(defaultAmount);
   const quizAmount = maximum > 0 ? Math.max(1, Math.min(amount, maximum)) : 0;
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -253,7 +264,6 @@ export default function Home() {
   const [masterySecondsRemaining, setMasterySecondsRemaining] = useState(5);
   const [locked, setLocked] = useState(false);
   const [hasCoarsePointer, setHasCoarsePointer] = useState(false);
-  const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [emptyError, setEmptyError] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const activeStartedAt = useRef<number | null>(null);
@@ -265,6 +275,10 @@ export default function Home() {
   );
   const advancedQuestionKey = useRef<string | null>(null);
   const masteryConfirmationInProgress = useRef(false);
+  const resumeFeedbackPending = useRef(false);
+  const quizStarted = useRef(false);
+  const sessionSnapshot = useRef<SavedQuizSession | null>(null);
+  const draftSaveTimer = useRef<number | null>(null);
   const swipeStart = useRef<{
     pointerId: number;
     x: number;
@@ -280,6 +294,7 @@ export default function Home() {
       setSelectedCollectionIds(savedSelection);
       setHiddenQuestions(loadHiddenQuestions());
       setEnabledWordTypes(loadEnabledWordTypes());
+      if (!quizStarted.current) setSavedSession(loadQuizSession());
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -298,12 +313,17 @@ export default function Home() {
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
       if (masteryCountdownTimer.current)
         clearInterval(masteryCountdownTimer.current);
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     },
     [],
   );
 
   const startQuiz = useCallback(
-    (requestedAmount = amount) => {
+    (requestedAmount = amount, discardSaved = false) => {
+      if (savedSession && !discardSaved) {
+        setNewQuizDialogOpen(true);
+        return false;
+      }
       const safeAmount = Math.max(
         1,
         Math.min(maximum, Math.floor(requestedAmount)),
@@ -315,9 +335,28 @@ export default function Home() {
         hiddenQuestionKeys,
       );
       if (!nextQuestions.length) return false;
+      const session: SavedQuizSession = {
+        version: 2,
+        id: crypto.randomUUID(),
+        questions: nextQuestions,
+        questionIndex: 0,
+        answers: [],
+        draftAnswer: '',
+        elapsed: 0,
+        newlyMasteredKeys: [],
+      };
+      const saved = startQuizSession(session);
+      if (!saved.ok) {
+        setStorageError(storageErrorMessage(saved.reason));
+        setNewQuizDialogOpen(false);
+        return false;
+      }
+      setStorageError(null);
+      quizStarted.current = true;
       if (advanceTimer.current) clearTimeout(advanceTimer.current);
       if (masteryCountdownTimer.current)
         clearInterval(masteryCountdownTimer.current);
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
       setAmount(safeAmount);
       setQuestions(nextQuestions);
       setQuestionIndex(0);
@@ -328,7 +367,6 @@ export default function Home() {
       setMasteryConfirmed(false);
       setMasterySecondsRemaining(5);
       setLocked(false);
-      setExitDialogOpen(false);
       setEmptyError(false);
       accumulatedTime.current = 0;
       activeStartedAt.current = performance.now();
@@ -337,10 +375,97 @@ export default function Home() {
       masteryConfirmationInProgress.current = false;
       swipeStart.current = null;
       setScreen('quiz');
+      setSavedSession(null);
+      setNewQuizDialogOpen(false);
+      sessionSnapshot.current = session;
       return true;
     },
-    [activeVocabulary, amount, hiddenQuestionKeys, maximum],
+    [activeVocabulary, amount, hiddenQuestionKeys, maximum, savedSession],
   );
+
+  const resumeQuiz = () => {
+    if (!savedSession) return;
+    quizStarted.current = true;
+    const session = savedSession;
+    setQuestions(session.questions);
+    setQuestionIndex(session.questionIndex);
+    setAnswers(
+      session.answers.map((record, index) => ({
+        question: session.questions[index],
+        ...record,
+      })),
+    );
+    setAnswer(session.draftAnswer);
+    setNewlyMasteredKeys(new Set(session.newlyMasteredKeys));
+    setAmount(session.questions.length);
+    setElapsed(session.elapsed);
+    accumulatedTime.current = session.elapsed;
+    const answeredCurrent = session.answers.length > session.questionIndex;
+    activeStartedAt.current = answeredCurrent ? null : performance.now();
+    setLocked(answeredCurrent);
+    setFeedback(answeredCurrent ? session.answers.at(-1)!.correct : null);
+    setMasteryConfirmed(false);
+    setMasterySecondsRemaining(5);
+    setEmptyError(false);
+    advancedQuestionKey.current = null;
+    masteryConfirmationInProgress.current = false;
+    resumeFeedbackPending.current = answeredCurrent;
+    sessionSnapshot.current = session;
+    setSavedSession(null);
+    setScreen('quiz');
+  };
+
+  useEffect(() => {
+    if (screen !== 'quiz' || questions.length === 0) return;
+    const current = sessionSnapshot.current;
+    if (!current) return;
+    const session: SavedQuizSession = {
+      version: 2,
+      id: current.id,
+      questions,
+      questionIndex,
+      answers: answers.map(({ answer, correct }) => ({ answer, correct })),
+      draftAnswer: answer,
+      elapsed: accumulatedTime.current,
+      newlyMasteredKeys: [...newlyMasteredKeys],
+    };
+    sessionSnapshot.current = session;
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    const saved = saveQuizProgress(session);
+    if (!saved.ok) setStorageError(storageErrorMessage(saved.reason));
+  }, [screen, questions, questionIndex, answers, newlyMasteredKeys]);
+
+  useEffect(() => {
+    if (screen !== 'quiz' || !sessionSnapshot.current) return;
+    sessionSnapshot.current = {
+      ...sessionSnapshot.current,
+      draftAnswer: answer,
+    };
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    draftSaveTimer.current = window.setTimeout(() => {
+      if (!sessionSnapshot.current) return;
+      const saved = saveQuizProgress(sessionSnapshot.current);
+      if (!saved.ok) setStorageError(storageErrorMessage(saved.reason));
+      draftSaveTimer.current = null;
+    }, 400);
+  }, [answer, screen]);
+
+  useEffect(() => {
+    const saveOnExit = () => {
+      const session = sessionSnapshot.current;
+      if (!session || screen !== 'quiz') return;
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+      const active = activeStartedAt.current;
+      saveQuizProgress({
+        ...session,
+        elapsed:
+          accumulatedTime.current +
+          (active === null ? 0 : performance.now() - active),
+      });
+    };
+    window.addEventListener('pagehide', saveOnExit);
+    return () => window.removeEventListener('pagehide', saveOnExit);
+  }, [screen]);
 
   const updateHiddenQuestions = useCallback((next: HiddenQuestion[]) => {
     const result = saveHiddenQuestions(next);
@@ -618,7 +743,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (screen !== 'quiz' || locked || exitDialogOpen) return;
+    if (screen !== 'quiz' || locked) return;
     const interval = window.setInterval(() => {
       const active =
         activeStartedAt.current === null
@@ -627,7 +752,7 @@ export default function Home() {
       setElapsed(accumulatedTime.current + active);
     }, 250);
     return () => window.clearInterval(interval);
-  }, [screen, locked, exitDialogOpen]);
+  }, [screen, locked]);
 
   useEffect(() => {
     if (questions[questionIndex]?.mode === 'text' && !locked)
@@ -672,8 +797,15 @@ export default function Home() {
                 throw new Error(
                   `questionCount must be an integer from 1 to ${maximum}`,
                 );
-              startQuiz(count as number);
-              return { status: 'started', questionCount: count };
+              const started = startQuiz(count as number);
+              return {
+                status: started
+                  ? 'started'
+                  : savedSession
+                    ? 'confirmation_required'
+                    : 'unavailable',
+                questionCount: count,
+              };
             },
           },
           { signal: lifecycle.signal },
@@ -699,6 +831,8 @@ export default function Home() {
       masteryCountdownTimer.current = null;
     }
     if (questionIndex === questions.length - 1) {
+      clearQuizSession();
+      sessionSnapshot.current = null;
       setScreen('results');
       return;
     }
@@ -710,6 +844,17 @@ export default function Home() {
     setLocked(false);
     activeStartedAt.current = performance.now();
   }, [questionIndex, questions]);
+
+  useEffect(() => {
+    if (!resumeFeedbackPending.current || screen !== 'quiz' || !locked) return;
+    resumeFeedbackPending.current = false;
+    if (feedback === true) {
+      masteryCountdownTimer.current = setInterval(() => {
+        setMasterySecondsRemaining((current) => Math.max(1, current - 1));
+      }, 1000);
+    }
+    advanceTimer.current = setTimeout(advanceQuestion, feedback ? 5000 : 2000);
+  }, [advanceQuestion, feedback, locked, screen]);
 
   const continueQuestion = useCallback(() => {
     if (!masteryConfirmationInProgress.current) advanceQuestion();
@@ -777,6 +922,21 @@ export default function Home() {
         },
       ];
       setAnswers(nextAnswers);
+      const session = sessionSnapshot.current;
+      if (session) {
+        const nextSession: SavedQuizSession = {
+          ...session,
+          answers: nextAnswers.map(({ answer, correct }) => ({
+            answer,
+            correct,
+          })),
+          draftAnswer: submittedAnswer,
+          elapsed: nextElapsed,
+        };
+        sessionSnapshot.current = nextSession;
+        const saved = saveQuizProgress(nextSession);
+        if (!saved.ok) setStorageError(storageErrorMessage(saved.reason));
+      }
       setFeedback(correct);
       setLocked(true);
       if (correct) {
@@ -792,13 +952,7 @@ export default function Home() {
 
   useEffect(() => {
     const current = questions[questionIndex];
-    if (
-      screen !== 'quiz' ||
-      locked ||
-      exitDialogOpen ||
-      current?.mode !== 'choice'
-    )
-      return;
+    if (screen !== 'quiz' || locked || current?.mode !== 'choice') return;
     const handleNumberKey = (event: KeyboardEvent) => {
       if (
         event.repeat ||
@@ -816,11 +970,10 @@ export default function Home() {
     };
     window.addEventListener('keydown', handleNumberKey);
     return () => window.removeEventListener('keydown', handleNumberKey);
-  }, [exitDialogOpen, locked, questionIndex, questions, screen, submitAnswer]);
+  }, [locked, questionIndex, questions, screen, submitAnswer]);
 
   useEffect(() => {
-    if (screen !== 'quiz' || !locked || feedback !== true || exitDialogOpen)
-      return;
+    if (screen !== 'quiz' || !locked || feedback !== true) return;
     const handleFeedbackKey = (event: KeyboardEvent) => {
       if (
         event.repeat ||
@@ -838,14 +991,7 @@ export default function Home() {
     };
     window.addEventListener('keydown', handleFeedbackKey);
     return () => window.removeEventListener('keydown', handleFeedbackKey);
-  }, [
-    continueQuestion,
-    exitDialogOpen,
-    feedback,
-    locked,
-    masterCurrentQuestion,
-    screen,
-  ]);
+  }, [continueQuestion, feedback, locked, masterCurrentQuestion, screen]);
 
   const handleMasteryPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (
@@ -911,23 +1057,40 @@ export default function Home() {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     if (masteryCountdownTimer.current)
       clearInterval(masteryCountdownTimer.current);
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     activeStartedAt.current = null;
-    setExitDialogOpen(false);
+    sessionSnapshot.current = null;
+    clearQuizSession();
+    setSavedSession(null);
     setScreen('setup');
   };
 
-  const handleExitDialogChange = (open: boolean) => {
-    if (open === exitDialogOpen) return;
-    if (open) {
-      const now = performance.now();
-      accumulatedTime.current +=
-        activeStartedAt.current === null ? 0 : now - activeStartedAt.current;
-      activeStartedAt.current = null;
-      setElapsed(accumulatedTime.current);
-    } else if (screen === 'quiz') {
-      activeStartedAt.current = performance.now();
-    }
-    setExitDialogOpen(open);
+  const pauseQuiz = () => {
+    const current = sessionSnapshot.current;
+    if (!current) return;
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    if (masteryCountdownTimer.current)
+      clearInterval(masteryCountdownTimer.current);
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    accumulatedTime.current +=
+      activeStartedAt.current === null
+        ? 0
+        : performance.now() - activeStartedAt.current;
+    activeStartedAt.current = null;
+    setElapsed(accumulatedTime.current);
+    const session: SavedQuizSession = {
+      ...current,
+      questionIndex,
+      answers: answers.map(({ answer, correct }) => ({ answer, correct })),
+      draftAnswer: answer,
+      elapsed: accumulatedTime.current,
+      newlyMasteredKeys: [...newlyMasteredKeys],
+    };
+    sessionSnapshot.current = session;
+    const saved = saveQuizProgress(session);
+    if (!saved.ok) setStorageError(storageErrorMessage(saved.reason));
+    setSavedSession(session);
+    setScreen('setup');
   };
 
   if (screen === 'setup') {
@@ -948,6 +1111,39 @@ export default function Home() {
               </strong>
             </div>
           )}
+          {savedSession && (
+            <div className="quiz-size-panel">
+              <p>
+                Quiz in progress: question {savedSession.questionIndex + 1} of{' '}
+                {savedSession.questions.length}
+              </p>
+              <Button onClick={resumeQuiz}>
+                Resume quiz <ArrowRight size={18} />
+              </Button>
+            </div>
+          )}
+          <AlertDialog
+            open={newQuizDialogOpen}
+            onOpenChange={setNewQuizDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Start a new quiz?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your unfinished quiz and its saved progress will be discarded.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep saved quiz</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => startQuiz(amount, true)}
+                >
+                  Discard and start new quiz
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {maximum > 0 ? (
             <>
               <div className="quiz-size-panel">
@@ -1424,8 +1620,8 @@ export default function Home() {
             </CollapsibleContent>
           </Collapsible>
           <p className="setup-note">
-            Quiz results aren’t saved. Mastered questions and imported
-            collections are stored on this device.
+            An unfinished quiz, mastered questions, and imported collections are
+            stored on this device. Completed results aren’t saved.
           </p>
         </section>
       </main>
@@ -1567,32 +1763,13 @@ export default function Home() {
   return (
     <main className="quiz-shell">
       <header className="quiz-header">
-        <AlertDialog
-          open={exitDialogOpen}
-          onOpenChange={handleExitDialogChange}
+        <button
+          className="back-button"
+          aria-label="Back to main screen"
+          onClick={pauseQuiz}
         >
-          <AlertDialogTrigger
-            render={
-              <button className="back-button" aria-label="Leave quiz">
-                <ArrowLeft size={19} />
-              </button>
-            }
-          />
-          <AlertDialogContent className="exit-dialog">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Leave this quiz?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Your answers and progress in this quiz will be lost.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep studying</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={returnToSetup}>
-                Leave quiz
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <ArrowLeft size={19} />
+        </button>
         <div className="progress-wrap">
           <div>
             <span>Question {questionIndex + 1}</span>

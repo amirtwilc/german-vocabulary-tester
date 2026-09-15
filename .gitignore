@@ -31,6 +31,8 @@ yarn-error.log*
 
 # deployment and generated files
 .vercel
+/.openai/site-stage-*/
+/.openai/site-*.tar.gz
 next-env.d.ts
 /dist/
 /.wrangler/

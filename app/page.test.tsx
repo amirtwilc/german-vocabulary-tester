@@ -22,6 +22,10 @@ import {
   WORD_TYPES_STORAGE_KEY,
 } from '@/lib/learning-preferences';
 import { createQuiz, type QuizQuestion } from '@/lib/quiz';
+import {
+  QUIZ_QUESTIONS_STORAGE_PREFIX,
+  QUIZ_SESSION_STORAGE_KEY,
+} from '@/lib/quiz-session';
 
 const answerQuestion = (question: QuizQuestion, correct: boolean) => {
   if (question.mode === 'choice') {
@@ -77,8 +81,9 @@ afterEach(() => {
 describe('quiz interface', () => {
   it('remembers the last selected collections after a page refresh', async () => {
     const user = userEvent.setup();
-    const customVocabulary = parseVocabularyCsv(vocabularyTemplateCsv())
-      .vocabulary!;
+    const customVocabulary = parseVocabularyCsv(
+      vocabularyTemplateCsv(),
+    ).vocabulary!;
     window.localStorage.setItem(
       COLLECTIONS_STORAGE_KEY,
       JSON.stringify(
@@ -138,6 +143,185 @@ describe('quiz interface', () => {
     await user.click(screen.getByTestId('start-quiz'));
     expect(screen.getByText(/Question 1/)).toBeInTheDocument();
     expect(screen.getByText(/of 20/)).toBeInTheDocument();
+  });
+
+  it('resumes the same questions and completed answers after a refresh', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const firstPage = render(<Home />);
+    setQuizLength(3);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    const firstPrompt =
+      firstPage.container.querySelector('#question-heading')?.textContent;
+    fireEvent.click(
+      firstPage.container.querySelector<HTMLButtonElement>('.choice-button')!,
+    );
+    await act(async () => vi.advanceTimersByTime(5000));
+    expect(screen.getByText(/Question 2/)).toBeInTheDocument();
+    const secondPrompt =
+      firstPage.container.querySelector('#question-heading')?.textContent;
+    const saved = JSON.parse(
+      window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!,
+    );
+    expect(saved.questionIndex).toBe(1);
+    expect(saved.answers).toHaveLength(1);
+    firstPage.unmount();
+
+    const secondPage = render(<Home />);
+    await act(async () => vi.advanceTimersByTime(0));
+    expect(
+      screen.getByText('Quiz in progress: question 2 of 3'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Resume quiz' }));
+    expect(screen.getByText(/Question 2/)).toBeInTheDocument();
+    expect(
+      secondPage.container.querySelector('#question-heading'),
+    ).toHaveTextContent(secondPrompt!);
+    expect(
+      secondPage.container.querySelector('#question-heading'),
+    ).not.toHaveTextContent(firstPrompt!);
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!)
+        .answers,
+    ).toHaveLength(1);
+  });
+
+  it('keeps the saved quiz when using the back button', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    await user.click(screen.getByTestId('start-quiz'));
+    const original = JSON.parse(
+      window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!,
+    );
+    const prompt = screen.getByRole('heading', { level: 1 }).textContent;
+    await user.click(
+      screen.getByRole('button', { name: 'Back to main screen' }),
+    );
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Resume quiz' }),
+    ).toBeInTheDocument();
+    const paused = JSON.parse(
+      window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!,
+    );
+    expect(paused.id).toBe(original.id);
+    expect(paused.questionIndex).toBe(original.questionIndex);
+    await user.click(screen.getByRole('button', { name: 'Resume quiz' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      prompt!,
+    );
+  });
+
+  it('asks before replacing a saved quiz', async () => {
+    const user = userEvent.setup();
+    const firstPage = render(<Home />);
+    await user.click(screen.getByTestId('start-quiz'));
+    const original = JSON.parse(
+      window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!,
+    );
+    firstPage.unmount();
+    render(<Home />);
+    expect(
+      await screen.findByRole('button', { name: 'Resume quiz' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('start-quiz'));
+    expect(screen.getByText('Start a new quiz?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Keep saved quiz' }));
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!).id,
+    ).toBe(original.id);
+    expect(
+      screen.getByRole('button', { name: 'Resume quiz' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('start-quiz'));
+    await user.click(
+      screen.getByRole('button', { name: 'Discard and start new quiz' }),
+    );
+    const replacement = JSON.parse(
+      window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!,
+    );
+    expect(replacement.id).not.toBe(original.id);
+    expect(
+      window.localStorage.getItem(
+        `${QUIZ_QUESTIONS_STORAGE_PREFIX}${original.id}`,
+      ),
+    ).toBeNull();
+    expect(screen.getByText(/Question 1/)).toBeInTheDocument();
+  });
+
+  it('debounces draft saves but flushes the latest draft on page exit', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const { container } = render(<Home />);
+    setQuizLength(3);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    fireEvent.click(
+      container.querySelector<HTMLButtonElement>('.choice-button')!,
+    );
+    await act(async () => vi.advanceTimersByTime(5000));
+    fireEvent.click(
+      container.querySelector<HTMLButtonElement>('.choice-button')!,
+    );
+    await act(async () => vi.advanceTimersByTime(5000));
+    const input = screen.getByLabelText('Your answer');
+
+    fireEvent.change(input, { target: { value: 'erst' } });
+    fireEvent.change(input, { target: { value: 'zweites Wort' } });
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!)
+        .draftAnswer,
+    ).toBe('');
+    await act(async () => vi.advanceTimersByTime(399));
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!)
+        .draftAnswer,
+    ).toBe('');
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!)
+        .draftAnswer,
+    ).toBe('zweites Wort');
+
+    fireEvent.change(input, { target: { value: 'letztes Wort' } });
+    fireEvent(window, new Event('pagehide'));
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!)
+        .draftAnswer,
+    ).toBe('letztes Wort');
+  });
+
+  it('keeps the saved quiz when replacement cannot be stored', async () => {
+    const user = userEvent.setup();
+    const firstPage = render(<Home />);
+    await user.click(screen.getByTestId('start-quiz'));
+    const original = window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY);
+    firstPage.unmount();
+    render(<Home />);
+    await screen.findByRole('button', { name: 'Resume quiz' });
+    const originalSetItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(
+      function (this: Storage, key, value) {
+        if (key.startsWith(QUIZ_QUESTIONS_STORAGE_PREFIX))
+          throw new DOMException('Storage full', 'QuotaExceededError');
+        originalSetItem.call(this, key, value);
+      },
+    );
+
+    await user.click(screen.getByTestId('start-quiz'));
+    await user.click(
+      screen.getByRole('button', { name: 'Discard and start new quiz' }),
+    );
+    expect(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)).toBe(
+      original,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Resume quiz' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Browser storage is full',
+    );
   });
 
   it('filters question availability by persisted word-type controls', async () => {
@@ -238,16 +422,30 @@ describe('quiz interface', () => {
     );
   });
 
-  it('asks for confirmation before leaving an active quiz', async () => {
-    const user = userEvent.setup();
-    render(<Home />);
-    await user.click(screen.getByTestId('start-quiz'));
-    await user.click(screen.getByRole('button', { name: 'Leave quiz' }));
-    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-    expect(screen.getByText('Leave this quiz?')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Keep studying' }));
-    expect(screen.queryByText('Leave this quiz?')).not.toBeInTheDocument();
+  it('pauses automatic advancement while on the main screen', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const { container } = render(<Home />);
+    setQuizLength(3);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    fireEvent.click(
+      container.querySelector<HTMLButtonElement>('.choice-button')!,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Back to main screen' }),
+    );
+    await act(async () => vi.advanceTimersByTime(10000));
+    expect(
+      screen.getByRole('button', { name: 'Resume quiz' }),
+    ).toBeInTheDocument();
+    expect(
+      JSON.parse(window.localStorage.getItem(QUIZ_SESSION_STORAGE_KEY)!)
+        .questionIndex,
+    ).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Resume quiz' }));
     expect(screen.getByText(/Question 1/)).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(5000));
+    expect(screen.getByText(/Question 2/)).toBeInTheDocument();
   });
 
   it('maps number keys to the visible multiple-choice order', async () => {
@@ -769,7 +967,7 @@ describe('quiz interface', () => {
     });
     expect(
       screen.getByText(
-        'Quiz results aren’t saved. Mastered questions and imported collections are stored on this device.',
+        'An unfinished quiz, mastered questions, and imported collections are stored on this device. Completed results aren’t saved.',
       ),
     ).toBeInTheDocument();
     await user.click(trigger);
