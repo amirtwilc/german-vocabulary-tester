@@ -774,7 +774,7 @@ export default function Home() {
           setMasterySecondsRemaining((current) => Math.max(1, current - 1));
         }, 1000);
       }
-      advanceTimer.current = setTimeout(advanceQuestion, correct ? 5000 : 1000);
+      advanceTimer.current = setTimeout(advanceQuestion, correct ? 5000 : 2000);
     },
     [advanceQuestion, answers, locked, questionIndex, questions],
   );

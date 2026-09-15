@@ -173,7 +173,7 @@ describe('quiz interface', () => {
     fireEvent.click(
       container.querySelector<HTMLButtonElement>('.choice-button')!,
     );
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => vi.advanceTimersByTime(2000));
     const reviewDiagram = screen.getByRole('img', {
       name: /Accusative: bis, durch, für, gegen, ohne, um/,
     });
@@ -249,7 +249,7 @@ describe('quiz interface', () => {
     expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
   });
 
-  it('continues after one second when the answer is incorrect', async () => {
+  it('continues after two seconds when the answer is incorrect', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);
     const [question] = createQuiz(vocabulary, 1, () => 0);
@@ -260,7 +260,7 @@ describe('quiz interface', () => {
     expect(
       screen.queryByRole('button', { name: 'Master this question' }),
     ).not.toBeInTheDocument();
-    await act(async () => vi.advanceTimersByTime(999));
+    await act(async () => vi.advanceTimersByTime(1999));
     expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
     await act(async () => vi.advanceTimersByTime(1));
     expect(screen.getByText('Quiz complete')).toBeInTheDocument();
@@ -447,11 +447,11 @@ describe('quiz interface', () => {
     fireEvent.click(
       container.querySelector<HTMLButtonElement>('.choice-button')!,
     );
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => vi.advanceTimersByTime(2000));
     fireEvent.click(
       container.querySelector<HTMLButtonElement>('.choice-button')!,
     );
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => vi.advanceTimersByTime(2000));
     const input = screen.getByLabelText('Your answer');
     expect(
       screen.getByText('Hint: You can also type ae, oe, ue, or ss.'),
@@ -586,16 +586,16 @@ describe('quiz interface', () => {
     fireEvent.click(
       container.querySelector<HTMLButtonElement>('.choice-button')!,
     );
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => vi.advanceTimersByTime(2000));
     fireEvent.click(
       container.querySelector<HTMLButtonElement>('.choice-button')!,
     );
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => vi.advanceTimersByTime(2000));
     fireEvent.change(screen.getByLabelText('Your answer'), {
       target: { value: 'falsch' },
     });
     fireEvent.submit(screen.getByLabelText('Your answer').closest('form')!);
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => vi.advanceTimersByTime(2000));
     expect(screen.getByText('Quiz complete')).toBeInTheDocument();
     expect(screen.getByText('Nice work.')).toBeInTheDocument();
     expect(screen.getAllByText('Correct answer')).toHaveLength(3);
@@ -611,7 +611,7 @@ describe('quiz interface', () => {
     const finishQuiz = async () => {
       for (const question of createQuiz(vocabulary, 3, () => 0)) {
         answerQuestion(question, false);
-        await act(async () => vi.advanceTimersByTime(1000));
+        await act(async () => vi.advanceTimersByTime(2000));
       }
       expect(screen.getByText('Quiz complete')).toBeInTheDocument();
     };
