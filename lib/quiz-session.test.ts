@@ -71,14 +71,14 @@ describe('saved quiz sessions', () => {
   it('preserves the previous quiz when starting a replacement fails', () => {
     const first = session('first');
     startQuizSession(first);
-    const originalSetItem = Storage.prototype.setItem;
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(
-      function (this: Storage, key, value) {
-        if (key === QUIZ_SESSION_STORAGE_KEY)
-          throw new DOMException('Storage full', 'QuotaExceededError');
-        originalSetItem.call(this, key, value);
-      },
+    const originalSetItem = window.localStorage.setItem.bind(
+      window.localStorage,
     );
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+      if (key === QUIZ_SESSION_STORAGE_KEY)
+        throw new DOMException('Storage full', 'QuotaExceededError');
+      originalSetItem(key, value);
+    });
     expect(startQuizSession(session('second')).ok).toBe(false);
     expect(loadQuizSession()?.id).toBe('first');
     expect(

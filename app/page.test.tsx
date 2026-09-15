@@ -300,14 +300,14 @@ describe('quiz interface', () => {
     firstPage.unmount();
     render(<Home />);
     await screen.findByRole('button', { name: 'Resume quiz' });
-    const originalSetItem = Storage.prototype.setItem;
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(
-      function (this: Storage, key, value) {
-        if (key.startsWith(QUIZ_QUESTIONS_STORAGE_PREFIX))
-          throw new DOMException('Storage full', 'QuotaExceededError');
-        originalSetItem.call(this, key, value);
-      },
+    const originalSetItem = window.localStorage.setItem.bind(
+      window.localStorage,
     );
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+      if (key.startsWith(QUIZ_QUESTIONS_STORAGE_PREFIX))
+        throw new DOMException('Storage full', 'QuotaExceededError');
+      originalSetItem(key, value);
+    });
 
     await user.click(screen.getByTestId('start-quiz'));
     await user.click(

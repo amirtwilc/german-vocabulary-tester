@@ -255,6 +255,7 @@ export default function Home() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState('');
+  const draftAnswerRef = useRef('');
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [newlyMasteredKeys, setNewlyMasteredKeys] = useState<Set<string>>(
     new Set(),
@@ -360,6 +361,7 @@ export default function Home() {
       setAmount(safeAmount);
       setQuestions(nextQuestions);
       setQuestionIndex(0);
+      draftAnswerRef.current = '';
       setAnswer('');
       setAnswers([]);
       setNewlyMasteredKeys(new Set());
@@ -395,6 +397,7 @@ export default function Home() {
         ...record,
       })),
     );
+    draftAnswerRef.current = session.draftAnswer;
     setAnswer(session.draftAnswer);
     setNewlyMasteredKeys(new Set(session.newlyMasteredKeys));
     setAmount(session.questions.length);
@@ -425,7 +428,7 @@ export default function Home() {
       questions,
       questionIndex,
       answers: answers.map(({ answer, correct }) => ({ answer, correct })),
-      draftAnswer: answer,
+      draftAnswer: draftAnswerRef.current,
       elapsed: accumulatedTime.current,
       newlyMasteredKeys: [...newlyMasteredKeys],
     };
@@ -815,7 +818,7 @@ export default function Home() {
       /* WebMCP is optional in unsupported browsers. */
     }
     return () => lifecycle.abort();
-  }, [maximum, startQuiz]);
+  }, [maximum, startQuiz, savedSession]);
 
   const advanceQuestion = useCallback(() => {
     const current = questions[questionIndex];
@@ -837,6 +840,7 @@ export default function Home() {
       return;
     }
     setQuestionIndex((index) => index + 1);
+    draftAnswerRef.current = '';
     setAnswer('');
     setFeedback(null);
     setMasteryConfirmed(false);
@@ -904,6 +908,7 @@ export default function Home() {
       }
       setEmptyError(false);
       const submittedAnswer = withoutAnswerPrefix(current, submitted);
+      draftAnswerRef.current = submittedAnswer;
       setAnswer(submittedAnswer);
       const correct = isCorrectAnswer(submittedAnswer, current.correctAnswer);
       const now = performance.now();
@@ -1045,6 +1050,7 @@ export default function Home() {
           ? Math.max(0, start - 1)
           : start
         : start + character.length;
+    draftAnswerRef.current = next;
     setAnswer(next);
     setEmptyError(false);
     requestAnimationFrame(() => {
@@ -1843,6 +1849,7 @@ export default function Home() {
                 value={answer}
                 disabled={locked}
                 onChange={(event) => {
+                  draftAnswerRef.current = event.target.value;
                   setAnswer(event.target.value);
                   setEmptyError(false);
                 }}
