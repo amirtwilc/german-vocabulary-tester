@@ -1423,6 +1423,24 @@ export default function Home() {
 
   if (screen === 'results') {
     const correctCount = answers.filter((item) => item.correct).length;
+    const resultsActions = (
+      <div className="results-actions">
+        <Button
+          onClick={returnToSetup}
+          variant="outline"
+          className="restart-button"
+        >
+          <ArrowLeft size={17} /> Back to Main Screen
+        </Button>
+        <Button
+          onClick={() => startQuiz(questions.length)}
+          disabled={maximum === 0}
+          className="restart-button"
+        >
+          <RotateCcw size={17} /> Start another quiz
+        </Button>
+      </div>
+    );
     return (
       <main className="results-shell">
         <header className="results-header">
@@ -1458,9 +1476,7 @@ export default function Home() {
               </strong>
             </div>
           )}
-          <Button onClick={returnToSetup} className="restart-button">
-            <RotateCcw size={17} /> Start another quiz
-          </Button>
+          {resultsActions}
         </header>
         <section className="review-list" aria-label="Answer review">
           {answers.map((record, index) => (
@@ -1529,11 +1545,7 @@ export default function Home() {
             </article>
           ))}
         </section>
-        <footer className="results-footer">
-          <Button onClick={returnToSetup} className="restart-button">
-            <RotateCcw size={17} /> Start another quiz
-          </Button>
-        </footer>
+        <footer className="results-footer">{resultsActions}</footer>
       </main>
     );
   }

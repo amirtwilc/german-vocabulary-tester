@@ -601,6 +601,46 @@ describe('quiz interface', () => {
     expect(screen.getAllByText('Correct answer')).toHaveLength(3);
   });
 
+  it('offers both result actions at the top and bottom and restarts with the same length', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    render(<Home />);
+    setQuizLength(3);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+
+    const finishQuiz = async () => {
+      for (const question of createQuiz(vocabulary, 3, () => 0)) {
+        answerQuestion(question, false);
+        await act(async () => vi.advanceTimersByTime(1000));
+      }
+      expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    };
+
+    await finishQuiz();
+    const startButtons = screen.getAllByRole('button', {
+      name: 'Start another quiz',
+    });
+    const backButtons = screen.getAllByRole('button', {
+      name: 'Back to Main Screen',
+    });
+    expect(startButtons).toHaveLength(2);
+    expect(backButtons).toHaveLength(2);
+    expect(startButtons[0]).toBeInTheDocument();
+    expect(startButtons[1]).toBeInTheDocument();
+
+    fireEvent.click(startButtons[0]);
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    expect(screen.getByText(/Question 1/)).toBeInTheDocument();
+    expect(screen.getByText(/of 3/)).toBeInTheDocument();
+
+    await finishQuiz();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Back to Main Screen' })[1],
+    );
+    expect(screen.getByTestId('start-quiz')).toBeInTheDocument();
+    expect(screen.getByText('3', { selector: 'output' })).toBeInTheDocument();
+  });
+
   it('lets the user skip mastery and change mastery from results', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);

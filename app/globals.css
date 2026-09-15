@@ -1166,6 +1166,11 @@ p {
   border-radius: 13px;
   font-weight: 700;
 }
+.results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .review-list {
   display: grid;
   gap: 13px;
