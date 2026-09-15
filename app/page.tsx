@@ -246,6 +246,7 @@ export default function Home() {
     new Set(),
   );
   const [feedback, setFeedback] = useState<boolean | null>(null);
+  const [masteryConfirmed, setMasteryConfirmed] = useState(false);
   const [masterySecondsRemaining, setMasterySecondsRemaining] = useState(5);
   const [locked, setLocked] = useState(false);
   const [hasCoarsePointer, setHasCoarsePointer] = useState(false);
@@ -260,6 +261,7 @@ export default function Home() {
     null,
   );
   const advancedQuestionKey = useRef<string | null>(null);
+  const masteryConfirmationInProgress = useRef(false);
   const swipeStart = useRef<{
     pointerId: number;
     x: number;
@@ -321,6 +323,7 @@ export default function Home() {
       setAnswers([]);
       setNewlyMasteredKeys(new Set());
       setFeedback(null);
+      setMasteryConfirmed(false);
       setMasterySecondsRemaining(5);
       setLocked(false);
       setExitDialogOpen(false);
@@ -329,6 +332,7 @@ export default function Home() {
       activeStartedAt.current = performance.now();
       setElapsed(0);
       advancedQuestionKey.current = null;
+      masteryConfirmationInProgress.current = false;
       swipeStart.current = null;
       setScreen('quiz');
       return true;
@@ -366,7 +370,7 @@ export default function Home() {
     [hiddenQuestionKeys, hiddenQuestions, updateHiddenQuestions],
   );
 
-  const practiseQuestionAgain = useCallback(
+  const practiceQuestionAgain = useCallback(
     (key: string) => {
       const saved = updateHiddenQuestions(
         hiddenQuestions.filter((question) => question.key !== key),
@@ -690,9 +694,15 @@ export default function Home() {
     setQuestionIndex((index) => index + 1);
     setAnswer('');
     setFeedback(null);
+    setMasteryConfirmed(false);
+    masteryConfirmationInProgress.current = false;
     setLocked(false);
     activeStartedAt.current = performance.now();
   }, [questionIndex, questions]);
+
+  const continueQuestion = useCallback(() => {
+    if (!masteryConfirmationInProgress.current) advanceQuestion();
+  }, [advanceQuestion]);
 
   const masterCurrentQuestion = useCallback(() => {
     const current = questions[questionIndex];
@@ -701,11 +711,21 @@ export default function Home() {
       screen !== 'quiz' ||
       !locked ||
       feedback !== true ||
+      masteryConfirmationInProgress.current ||
       advancedQuestionKey.current === current.questionKey
     )
       return;
-    masterQuestion(current);
-    advanceQuestion();
+    if (!masterQuestion(current)) {
+      advanceQuestion();
+      return;
+    }
+    masteryConfirmationInProgress.current = true;
+    swipeStart.current = null;
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    if (masteryCountdownTimer.current)
+      clearInterval(masteryCountdownTimer.current);
+    setMasteryConfirmed(true);
+    advanceTimer.current = setTimeout(advanceQuestion, 450);
   }, [
     advanceQuestion,
     feedback,
@@ -790,27 +810,37 @@ export default function Home() {
   useEffect(() => {
     if (screen !== 'quiz' || !locked || feedback !== true || exitDialogOpen)
       return;
-    const handleMasteryKey = (event: KeyboardEvent) => {
+    const handleFeedbackKey = (event: KeyboardEvent) => {
       if (
         event.repeat ||
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
-        event.shiftKey ||
-        event.key.toLocaleLowerCase() !== 'm'
+        event.shiftKey
       )
         return;
+      const key = event.key.toLocaleLowerCase();
+      if (key !== 'm' && key !== 'n') return;
       event.preventDefault();
-      masterCurrentQuestion();
+      if (key === 'm') masterCurrentQuestion();
+      else continueQuestion();
     };
-    window.addEventListener('keydown', handleMasteryKey);
-    return () => window.removeEventListener('keydown', handleMasteryKey);
-  }, [exitDialogOpen, feedback, locked, masterCurrentQuestion, screen]);
+    window.addEventListener('keydown', handleFeedbackKey);
+    return () => window.removeEventListener('keydown', handleFeedbackKey);
+  }, [
+    continueQuestion,
+    exitDialogOpen,
+    feedback,
+    locked,
+    masterCurrentQuestion,
+    screen,
+  ]);
 
   const handleMasteryPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (
       feedback !== true ||
       !locked ||
+      masteryConfirmationInProgress.current ||
       !['touch', 'pen'].includes(event.pointerType)
     )
       return;
@@ -833,7 +863,7 @@ export default function Home() {
     )
       return;
     if (horizontalDistance > 0) masterCurrentQuestion();
-    else advanceQuestion();
+    else continueQuestion();
   };
 
   const handleTextSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -955,7 +985,7 @@ export default function Home() {
                 <span>Select at least one word type to start a quiz.</span>
               ) : (
                 <span>
-                  No eligible questions remain. Practise mastered questions
+                  No eligible questions remain. Practice mastered questions
                   again or choose another collection.
                 </span>
               )}
@@ -1277,12 +1307,37 @@ export default function Home() {
                     <p>These questions are excluded from quizzes.</p>
                   </div>
                   {hiddenQuestions.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => updateHiddenQuestions([])}
-                    >
-                      Practise all again
-                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger
+                        render={
+                          <button type="button">Practice all again</button>
+                        }
+                      />
+                      <AlertDialogContent className="exit-dialog">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Practice all mastered questions again?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This returns all {hiddenQuestions.length} mastered
+                            {hiddenQuestions.length === 1
+                              ? ' question'
+                              : ' questions'}{' '}
+                            to your question pool, so they can appear in future
+                            quizzes. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep mastered</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => updateHiddenQuestions([])}
+                          >
+                            Practice all again
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </div>
                 {hiddenQuestionGroups.length ? (
@@ -1303,10 +1358,10 @@ export default function Home() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  practiseQuestionAgain(question.key)
+                                  practiceQuestionAgain(question.key)
                                 }
                               >
-                                <Eye size={15} /> Practise again
+                                <Eye size={15} /> Practice again
                               </button>
                             </li>
                           ))}
@@ -1457,13 +1512,13 @@ export default function Home() {
                 )}
                 onClick={() =>
                   hiddenQuestionKeys.has(record.question.questionKey)
-                    ? practiseQuestionAgain(record.question.questionKey)
+                    ? practiceQuestionAgain(record.question.questionKey)
                     : masterQuestion(record.question)
                 }
               >
                 {hiddenQuestionKeys.has(record.question.questionKey) ? (
                   <>
-                    <Eye size={17} /> Practise this question again
+                    <Eye size={17} /> Practice this question again
                   </>
                 ) : (
                   <>
@@ -1530,7 +1585,7 @@ export default function Home() {
         </div>
       </header>
       <section
-        className={`question-card ${feedback === true ? 'feedback-correct' : feedback === false ? 'feedback-wrong' : ''}`}
+        className={`question-card ${masteryConfirmed ? 'mastery-confirmed' : feedback === true ? 'feedback-correct' : feedback === false ? 'feedback-wrong' : ''}`}
         aria-labelledby="question-heading"
         onPointerDown={handleMasteryPointerDown}
         onPointerUp={handleMasteryPointerUp}
@@ -1650,43 +1705,51 @@ export default function Home() {
                       aria-live="assertive"
                       aria-atomic="true"
                     >
-                      <CheckCircle2 /> Correct
+                      <CheckCircle2 />
+                      {masteryConfirmed ? 'Question mastered' : 'Correct'}
                     </output>
-                    <Button
-                      type="button"
-                      size="lg"
-                      className="mastery-button"
-                      aria-keyshortcuts="M"
-                      onClick={masterCurrentQuestion}
-                    >
-                      <CheckCircle2 /> Master this question
-                    </Button>
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="outline"
-                      className="next-button"
-                      onClick={advanceQuestion}
-                    >
-                      Next <ArrowRight />
-                    </Button>
+                    {!masteryConfirmed && (
+                      <Button
+                        type="button"
+                        size="lg"
+                        className="mastery-button"
+                        aria-keyshortcuts="M"
+                        onClick={masterCurrentQuestion}
+                      >
+                        <CheckCircle2 /> Master this question
+                      </Button>
+                    )}
+                    {!masteryConfirmed && (
+                      <Button
+                        type="button"
+                        size="lg"
+                        variant="outline"
+                        className="next-button"
+                        aria-keyshortcuts="N"
+                        onClick={continueQuestion}
+                      >
+                        Next <ArrowRight />
+                      </Button>
+                    )}
                   </div>
-                  <div className="mastery-meta">
-                    <p className="mastery-hint">
-                      {hasCoarsePointer
-                        ? 'Tap, swipe right to master, or left for next'
-                        : 'Click or press M to master'}
-                    </p>
-                    <div className="mastery-countdown" aria-hidden="true">
-                      <span>
-                        {masterySecondsRemaining}{' '}
-                        {masterySecondsRemaining === 1 ? 'second' : 'seconds'}
-                      </span>
-                      <span className="mastery-progress">
-                        <span />
-                      </span>
+                  {!masteryConfirmed && (
+                    <div className="mastery-meta">
+                      <p className="mastery-hint">
+                        {hasCoarsePointer
+                          ? 'Tap, swipe right to master, or left for next'
+                          : 'Press M to master or N for next'}
+                      </p>
+                      <div className="mastery-countdown" aria-hidden="true">
+                        <span>
+                          {masterySecondsRemaining}{' '}
+                          {masterySecondsRemaining === 1 ? 'second' : 'seconds'}
+                        </span>
+                        <span className="mastery-progress">
+                          <span />
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <output

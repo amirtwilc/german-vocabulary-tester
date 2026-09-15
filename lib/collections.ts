@@ -5,6 +5,7 @@ import type {
   Noun,
   Preposition,
   PresentPerson,
+  Reflexive,
   Verb,
   VerbCase,
   Vocabulary,
@@ -61,6 +62,7 @@ export const CSV_COLUMNS = [
   'preterite_sie_sie',
   'past_participle',
   'auxiliary',
+  'reflexive',
   'notes',
 ] as const;
 
@@ -127,6 +129,9 @@ const isVerb = (value: unknown): value is Verb =>
   (value.auxiliary === undefined ||
     (typeof value.auxiliary === 'string' &&
       ['hat', 'ist'].includes(value.auxiliary))) &&
+  (value.reflexive === undefined ||
+    (typeof value.reflexive === 'string' &&
+      ['', 'no', 'always', 'sometimes'].includes(value.reflexive))) &&
   (value.case === undefined ||
     (typeof value.case === 'string' &&
       ['Akkusativ', 'Dativ', 'Akkusativ + Dativ'].includes(value.case)));
@@ -271,7 +276,9 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
       errors: [`Duplicate column heading: ${duplicateHeaders[0]}.`],
       wordCount: 0,
     };
-  const missing = CSV_COLUMNS.filter((column) => !headers.includes(column));
+  const missing = CSV_COLUMNS.filter(
+    (column) => column !== 'reflexive' && !headers.includes(column),
+  );
   const unknown = headers.filter(
     (header) => !CSV_COLUMNS.includes(header as CsvColumn),
   );
@@ -359,6 +366,13 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
         errors.push(`Row ${line}: auxiliary must be hat or ist.`);
         return;
       }
+      if (
+        values.reflexive &&
+        !['no', 'always', 'sometimes'].includes(normalize(values.reflexive))
+      ) {
+        errors.push(`Row ${line}: reflexive must be no, always, or sometimes.`);
+        return;
+      }
       const verbCase = values.case.trim();
       if (
         verbCase &&
@@ -377,6 +391,8 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
         preterite: pickForms(values, 'preterite'),
         pastParticiple: values.past_participle || undefined,
         auxiliary: (normalize(values.auxiliary) as Auxiliary) || undefined,
+        reflexive:
+          (normalize(values.reflexive ?? '') as Reflexive) || undefined,
         case: (verbCase as VerbCase) || undefined,
         notes: values.notes || undefined,
       });
@@ -456,6 +472,7 @@ export const vocabularyToCsv = (source: Vocabulary) => {
       english: verb.english,
       past_participle: verb.pastParticiple,
       auxiliary: verb.auxiliary,
+      reflexive: verb.reflexive,
       case: verb.case,
       notes: verb.notes,
     };
@@ -515,6 +532,7 @@ export const vocabularyTemplateCsv = () =>
         present: { ich: 'lerne', du: 'lernst', erSieEs: 'lernt', ihr: 'lernt' },
         pastParticiple: 'gelernt',
         auxiliary: 'hat',
+        reflexive: 'no',
         case: 'Akkusativ',
         notes: 'Replace or remove these example rows.',
       },

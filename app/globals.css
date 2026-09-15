@@ -762,6 +762,22 @@ p {
   box-shadow: 0 25px 65px rgba(42, 115, 76, 0.1);
   touch-action: pan-y;
 }
+.question-card.mastery-confirmed {
+  border-color: #479766;
+  background: #e8f6ec;
+  box-shadow: 0 25px 65px rgba(35, 100, 65, 0.18);
+}
+.question-card.mastery-confirmed h1 {
+  color: #236441;
+}
+.question-card.mastery-confirmed .mastery-action {
+  border-color: #83be97;
+  background: #d4efdd;
+}
+.question-card.mastery-confirmed .mastery-action-main {
+  display: flex;
+  justify-content: center;
+}
 .question-card.feedback-wrong {
   border-color: #dca19f;
 }

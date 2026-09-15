@@ -50,6 +50,8 @@ const supportedPresentPeople = new Set<PresentPerson>([
 ]);
 const normalizeQuestionWord = (word: string) =>
   word.trim().toLocaleLowerCase('de-DE').normalize('NFC');
+const bareVerbInfinitive = (infinitive: string) =>
+  infinitive.trim().replace(/^sich\s+/i, '');
 
 const questionFacet = (id: string) => {
   const person = id.match(
@@ -63,6 +65,7 @@ const questionFacet = (id: string) => {
       'plural',
       'participle',
       'auxiliary',
+      'reflexive',
       'case',
       'category',
       'movement',
@@ -104,6 +107,88 @@ const translationOptions = (
     [correct, ...shuffle(distractors, random).slice(0, 3)],
     random,
   );
+};
+
+const verbChoiceOptions = (
+  verb: Verb,
+  pool: readonly Verb[],
+  matchesDistractor: (candidate: Verb) => boolean,
+  random: () => number,
+): string[] | undefined => {
+  const correct = bareVerbInfinitive(verb.infinitive);
+  const seen = new Set([normalizeQuestionWord(correct)]);
+  const distractors = pool.flatMap((candidate) => {
+    const infinitive = bareVerbInfinitive(candidate.infinitive);
+    const name = normalizeQuestionWord(infinitive);
+    if (!matchesDistractor(candidate) || seen.has(name)) return [];
+    seen.add(name);
+    return [infinitive];
+  });
+  if (distractors.length < 3) return undefined;
+  return shuffle(
+    [correct, ...shuffle(distractors, random).slice(0, 3)],
+    random,
+  );
+};
+
+const specialVerbQuestions = (
+  verb: Verb,
+  pool: readonly Verb[],
+  random: () => number,
+  excludedQuestionKeys: ReadonlySet<string>,
+): RawQuizQuestion[] => {
+  const questions: RawQuizQuestion[] = [];
+  if (verb.reflexive === 'always' || verb.reflexive === 'sometimes') {
+    const options = verbChoiceOptions(
+      verb,
+      pool,
+      (candidate) =>
+        candidate.reflexive !== undefined &&
+        candidate.reflexive !== '' &&
+        candidate.reflexive !== verb.reflexive,
+      random,
+    );
+    if (options)
+      questions.push({
+        id: `${verb.id}-reflexive`,
+        wordId: verb.id,
+        wordType: 'verb',
+        word: verb.infinitive,
+        eyebrow: 'Verb · reflexive',
+        prompt: `Which of these verbs is ${verb.reflexive.toUpperCase()} reflexive?`,
+        mode: 'choice',
+        correctAnswer: bareVerbInfinitive(verb.infinitive),
+        options,
+        notes: verb.notes,
+      });
+  }
+  if (verb.auxiliary === 'ist') {
+    const options = verbChoiceOptions(
+      verb,
+      pool,
+      (candidate) => candidate.auxiliary === 'hat',
+      random,
+    );
+    if (options)
+      questions.push({
+        id: `${verb.id}-auxiliary`,
+        wordId: verb.id,
+        wordType: 'verb',
+        word: verb.infinitive,
+        eyebrow: 'Verb · auxiliary',
+        prompt: `Which of these words use the Auxiliary 'ist'?`,
+        mode: 'choice',
+        correctAnswer: bareVerbInfinitive(verb.infinitive),
+        options,
+        notes: verb.notes,
+      });
+  }
+  const available = questions.filter(
+    (question) => !excludedQuestionKeys.has(keyQuestion(question).questionKey),
+  );
+  return available.length
+    ? [available[Math.floor(random() * available.length)]]
+    : [];
 };
 
 const nounBlock = (
@@ -191,22 +276,9 @@ const verbCandidates = (
       wordType: 'verb',
       word: verb.infinitive,
       eyebrow: 'Verb · past participle',
-      prompt: `Write the past participle of “${verb.infinitive}”.`,
+      prompt: `Write the past participle of “${verb.infinitive}” (${verb.english}).`,
       mode: 'text',
       correctAnswer: verb.pastParticiple,
-      notes: verb.notes,
-    });
-  if (verb.auxiliary)
-    candidates.push({
-      id: `${verb.id}-auxiliary`,
-      wordId: verb.id,
-      wordType: 'verb',
-      word: verb.infinitive,
-      eyebrow: 'Verb · auxiliary',
-      prompt: `Which auxiliary does “${verb.infinitive}” use?`,
-      mode: 'choice',
-      correctAnswer: verb.auxiliary,
-      options: shuffle(['hat', 'ist'], random),
       notes: verb.notes,
     });
   if (verb.case)
@@ -287,21 +359,33 @@ const verbBlock = (
   pool: readonly Verb[],
   random: () => number,
   excludedQuestionKeys: ReadonlySet<string>,
-): RawQuizQuestion[] => [
-  {
-    id: `${verb.id}-translation`,
-    wordId: verb.id,
-    wordType: 'verb',
-    word: verb.infinitive,
-    eyebrow: 'Verb · meaning',
-    prompt: `What does “${verb.infinitive}” mean?`,
-    mode: 'choice',
-    correctAnswer: verb.english,
-    options: translationOptions(verb.english, pool, random),
-    notes: verb.notes,
-  },
-  ...verbCandidates(verb, random, excludedQuestionKeys),
-];
+): RawQuizQuestion[] => {
+  const special = specialVerbQuestions(
+    verb,
+    pool,
+    random,
+    excludedQuestionKeys,
+  );
+  return [
+    ...special,
+    {
+      id: `${verb.id}-translation`,
+      wordId: verb.id,
+      wordType: 'verb',
+      word: verb.infinitive,
+      eyebrow: 'Verb · meaning',
+      prompt: `What does “${verb.infinitive}” mean?`,
+      mode: 'choice',
+      correctAnswer: verb.english,
+      options: translationOptions(verb.english, pool, random),
+      notes: verb.notes,
+    },
+    ...verbCandidates(verb, random, excludedQuestionKeys).slice(
+      0,
+      special.length ? 2 : 3,
+    ),
+  ];
+};
 
 const prepositionBlock = (
   preposition: Preposition,

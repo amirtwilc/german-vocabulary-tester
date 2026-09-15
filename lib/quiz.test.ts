@@ -47,19 +47,229 @@ const source = {
   adjectivesAndAdverbs: [],
 } satisfies Vocabulary;
 
+const specialSource = {
+  nouns: [],
+  verbs: [
+    {
+      id: 'move',
+      infinitive: 'umziehen',
+      english: 'to move',
+      reflexive: 'sometimes',
+      auxiliary: 'ist',
+      present: { ich: 'ziehe um', du: 'ziehst um' },
+      pastParticiple: 'umgezogen',
+      case: 'Akkusativ',
+    },
+    {
+      id: 'hurry',
+      infinitive: 'sich beeilen',
+      english: 'to hurry',
+      reflexive: 'always',
+      auxiliary: 'hat',
+    },
+    {
+      id: 'read',
+      infinitive: 'lesen',
+      english: 'to read',
+      reflexive: 'no',
+      auxiliary: 'hat',
+    },
+    {
+      id: 'help',
+      infinitive: 'helfen',
+      english: 'to help',
+      reflexive: 'no',
+      auxiliary: 'hat',
+    },
+    {
+      id: 'learn',
+      infinitive: 'lernen',
+      english: 'to learn',
+      reflexive: 'no',
+      auxiliary: 'hat',
+    },
+  ],
+  prepositions: [],
+  adjectivesAndAdverbs: [],
+} satisfies Vocabulary;
+
+const moveBlock = (quiz: ReturnType<typeof createQuiz>) =>
+  quiz.filter((question) => question.wordId === 'move');
+
 describe('quiz generation', () => {
+  it('uses four distinct verbs with valid labels for reflexive and ist questions', () => {
+    for (const randomValue of [0, 0.99]) {
+      const first = moveBlock(
+        createQuiz(specialSource, 99, () => randomValue),
+      )[0];
+      expect(first.mode).toBe('choice');
+      expect(first.options).toHaveLength(4);
+      expect(
+        new Set(first.options?.map((option) => option.toLowerCase())).size,
+      ).toBe(4);
+      expect(first.correctAnswer).toBe('umziehen');
+      expect(first.options).toContain('umziehen');
+      expect(first.options).not.toContain('sich beeilen');
+      expect(first.id).toBe(
+        randomValue === 0 ? 'move-reflexive' : 'move-auxiliary',
+      );
+      expect(first.prompt).toBe(
+        randomValue === 0
+          ? 'Which of these verbs is SOMETIMES reflexive?'
+          : "Which of these words use the Auxiliary 'ist'?",
+      );
+      for (const option of first.options!.filter(
+        (item) => item !== 'umziehen',
+      )) {
+        const distractor = specialSource.verbs.find(
+          (item) => item.infinitive.replace(/^sich\s+/, '') === option,
+        )!;
+        expect(
+          randomValue === 0
+            ? distractor.reflexive !== 'sometimes'
+            : distractor.auxiliary === 'hat',
+        ).toBe(true);
+      }
+    }
+    const hurry = createQuiz(specialSource, 99, () => 0).find(
+      (question) => question.id === 'hurry-reflexive',
+    );
+    expect(hurry?.prompt).toBe('Which of these verbs is ALWAYS reflexive?');
+    expect(hurry?.options).toHaveLength(4);
+    expect(hurry?.correctAnswer).toBe('beeilen');
+    expect(hurry?.options).toContain('beeilen');
+    expect(hurry?.options).not.toContain('sich beeilen');
+    expect(hurry?.questionKey).toBe('v1:verb:sich%20beeilen:reflexive');
+  });
+
+  it('treats infinitives with and without sich as the same option', () => {
+    const withDuplicate = {
+      ...specialSource,
+      verbs: [
+        ...specialSource.verbs,
+        {
+          id: 'hurry-duplicate',
+          infinitive: 'beeilen',
+          english: 'to hurry',
+          reflexive: 'no',
+          auxiliary: 'hat',
+        },
+      ],
+    } satisfies Vocabulary;
+    const hurry = createQuiz(withDuplicate, 99, () => 0).find(
+      (question) => question.id === 'hurry-reflexive',
+    );
+    expect(hurry?.options).toHaveLength(4);
+    expect(
+      hurry?.options?.filter((option) => option === 'beeilen'),
+    ).toHaveLength(1);
+  });
+
+  it('identifies the strong meaning in the wiegen participle question', () => {
+    const wiegen = vocabulary.verbs.find((verb) => verb.id === 'wiegen')!;
+    expect(wiegen.reflexive).toBe('no');
+    const participleOnly = { ...wiegen, present: undefined, case: undefined };
+    const quiz = createQuiz(
+      {
+        nouns: [],
+        verbs: [participleOnly],
+        prepositions: [],
+        adjectivesAndAdverbs: [],
+      },
+      99,
+      () => 0,
+    );
+    const participle = quiz.find(
+      (question) => question.id === 'wiegen-participle',
+    );
+    expect(participle?.prompt).toBe(
+      'Write the past participle of “wiegen” (to weigh).',
+    );
+    expect(participle?.correctAnswer).toBe('gewogen');
+  });
+
+  it('places one eligible question before translation and leaves two follow-ups', () => {
+    const block = moveBlock(createQuiz(specialSource, 99, () => 0));
+    expect(block.map((question) => question.id).slice(0, 2)).toEqual([
+      'move-reflexive',
+      'move-translation',
+    ]);
+    expect(block).toHaveLength(4);
+    expect(
+      block
+        .slice(2)
+        .every(
+          (question) =>
+            !question.id.endsWith('-auxiliary') &&
+            !question.id.endsWith('-reflexive'),
+        ),
+    ).toBe(true);
+    const plain = createQuiz(specialSource, 99, () => 0).filter(
+      (question) => question.wordId === 'read',
+    );
+    expect(plain.map((question) => question.id)).toEqual(['read-translation']);
+  });
+
+  it('offers the other special question when one is mastered', () => {
+    const first = moveBlock(createQuiz(specialSource, 99, () => 0))[0];
+    const withReflexiveMastered = moveBlock(
+      createQuiz(specialSource, 99, () => 0, new Set([first.questionKey])),
+    );
+    expect(withReflexiveMastered[0].id).toBe('move-auxiliary');
+    const withBothMastered = moveBlock(
+      createQuiz(
+        specialSource,
+        99,
+        () => 0,
+        new Set([first.questionKey, withReflexiveMastered[0].questionKey]),
+      ),
+    );
+    expect(withBothMastered[0].id).toBe('move-translation');
+    expect(withBothMastered).toHaveLength(4);
+  });
+
+  it('skips special questions without three valid distractors', () => {
+    const scarce = {
+      ...specialSource,
+      verbs: specialSource.verbs.slice(0, 3),
+    } satisfies Vocabulary;
+    expect(moveBlock(createQuiz(scarce, 99, () => 0))[0].id).toBe(
+      'move-translation',
+    );
+    expect(moveBlock(createQuiz(scarce, 99, () => 0))).toHaveLength(4);
+  });
+
+  it('labels each existing default verb', () => {
+    const sometimes = new Set([
+      'umziehen',
+      'leihen',
+      'wünschen',
+      'anbieten',
+      'empfehlen',
+      'erklären',
+      'zeigen',
+      'verstehen',
+      'merken',
+      'entscheiden',
+    ]);
+    expect(vocabulary.verbs).toHaveLength(140);
+    for (const verb of vocabulary.verbs.slice(0, 86))
+      expect(verb.reflexive).toBe(
+        sometimes.has(verb.infinitive) ? 'sometimes' : 'no',
+      );
+  });
   it('calculates the available unique questions', () => {
-    expect(getMaximumQuestionCount(source)).toBe(14);
+    expect(getMaximumQuestionCount(source)).toBe(13);
   });
 
   it('returns the exact requested total and trims a final block', () => {
     expect(createQuiz(source, 1, () => 0.5)).toHaveLength(1);
     expect(createQuiz(source, 9, () => 0.5)).toHaveLength(9);
-    expect(createQuiz(source, 99, () => 0.5)).toHaveLength(14);
+    expect(createQuiz(source, 99, () => 0.5)).toHaveLength(13);
   });
 
   it('keeps each word translation unique and limits verb follow-ups to three', () => {
-    const quiz = createQuiz(source, 14, () => 0.25);
+    const quiz = createQuiz(source, 13, () => 0.25);
     const translations = quiz.filter((question) =>
       question.id.endsWith('-translation'),
     );
@@ -72,7 +282,7 @@ describe('quiz generation', () => {
   });
 
   it('uses unique, same-category translation options and supports small pools', () => {
-    const quiz = createQuiz(source, 14, () => 0.75);
+    const quiz = createQuiz(source, 13, () => 0.75);
     for (const question of quiz.filter((item) =>
       item.id.endsWith('-translation'),
     )) {

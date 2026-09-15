@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -226,7 +227,13 @@ describe('quiz interface', () => {
     expect(
       screen.getByRole('button', { name: 'Master this question' }),
     ).toHaveAttribute('aria-keyshortcuts', 'M');
-    expect(screen.getByText('Click or press M to master')).toBeInTheDocument();
+    expect(
+      screen.getByText('Press M to master or N for next'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveAttribute(
+      'aria-keyshortcuts',
+      'N',
+    );
     expect(screen.getByText('5 seconds')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Correct');
     expect(document.querySelector('.feedback-slot')).not.toHaveAttribute(
@@ -271,6 +278,16 @@ describe('quiz interface', () => {
     fireEvent.keyDown(window, { key: 'm', repeat: true });
     expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'M' });
+    expect(screen.getByRole('status')).toHaveTextContent('Question mastered');
+    expect(document.querySelector('.question-card')).toHaveClass(
+      'mastery-confirmed',
+    );
+    expect(screen.getByText(question.prompt)).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'N' });
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(449));
+    expect(screen.getByText(question.prompt)).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(1));
     expect(screen.getByText('Quiz complete')).toBeInTheDocument();
     expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
     expect(window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY)).toContain(
@@ -287,7 +304,31 @@ describe('quiz interface', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Master this question' }),
     );
+    expect(screen.getByRole('status')).toHaveTextContent('Question mastered');
+    await act(async () => vi.advanceTimersByTime(450));
     expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
+  });
+
+  it('uses N to continue without mastering only during correct feedback', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+
+    fireEvent.keyDown(window, { key: 'n' });
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    answerQuestion(question, true);
+    fireEvent.keyDown(window, { key: 'n', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'n', repeat: true });
+    expect(screen.queryByText('Quiz complete')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'N' });
+    expect(screen.getByText('Quiz complete')).toBeInTheDocument();
+    expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
+    expect(
+      window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY),
+    ).toBeNull();
   });
 
   it('supports deliberate touch swipes without hijacking other gestures', async () => {
@@ -332,6 +373,8 @@ describe('quiz interface', () => {
       clientX: 80,
       clientY: 15,
     });
+    expect(screen.getByRole('status')).toHaveTextContent('Question mastered');
+    await act(async () => vi.advanceTimersByTime(450));
     expect(screen.getByText('Quiz complete')).toBeInTheDocument();
     expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
   });
@@ -384,7 +427,9 @@ describe('quiz interface', () => {
     setQuizLength(1);
     fireEvent.click(screen.getByTestId('start-quiz'));
     answerQuestion(question, true);
-    expect(screen.getByText('Click or press M to master')).toBeInTheDocument();
+    expect(
+      screen.getByText('Press M to master or N for next'),
+    ).toBeInTheDocument();
     await act(async () => {
       mediaQuery.matches = true;
       listeners.forEach((listener) => listener());
@@ -578,7 +623,7 @@ describe('quiz interface', () => {
       screen.getByText('1 mastered question in total'),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Practise this question again' }),
+      screen.getByRole('button', { name: 'Practice this question again' }),
     );
     expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
     expect(
@@ -607,7 +652,7 @@ describe('quiz interface', () => {
     );
   });
 
-  it('shows every mastered question and lets the user practise one again', async () => {
+  it('shows every mastered question and lets the user practice one again', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
       HIDDEN_QUESTIONS_STORAGE_KEY,
@@ -635,12 +680,76 @@ describe('quiz interface', () => {
     ).toBeInTheDocument();
     await user.click(trigger);
     expect(screen.getByText('Conjugate “helfen” for ich.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Practise again' }));
+    await user.click(screen.getByRole('button', { name: 'Practice again' }));
     expect(
       screen.getByRole('button', { name: 'Mastered questions (0)' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/No questions are mastered yet/),
     ).toBeInTheDocument();
+  });
+
+  it('explains and confirms before returning all mastered questions to the pool', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      HIDDEN_QUESTIONS_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        questions: [
+          {
+            key: 'v1:verb:helfen:present:ich',
+            word: 'helfen',
+            wordType: 'verb',
+            prompt: 'Conjugate “helfen” for ich.',
+            hiddenAt: new Date().toISOString(),
+          },
+          {
+            key: 'v1:verb:helfen:present:du',
+            word: 'helfen',
+            wordType: 'verb',
+            prompt: 'Conjugate “helfen” for du.',
+            hiddenAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+    render(<Home />);
+    await user.click(
+      await screen.findByRole('button', { name: 'Mastered questions (2)' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Practice all again' }),
+    );
+    expect(
+      screen.getByRole('alertdialog', {
+        name: 'Practice all mastered questions again?',
+      }),
+    ).toHaveTextContent(
+      'This returns all 2 mastered questions to your question pool, so they can appear in future quizzes. This cannot be undone.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Keep mastered' }));
+    expect(
+      screen.getByRole('button', { name: 'Mastered questions (2)' }),
+    ).toBeInTheDocument();
+    expect(
+      JSON.parse(window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY)!)
+        .questions,
+    ).toHaveLength(2);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Practice all again' }),
+    );
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Practice all again',
+      }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Mastered questions (0)' }),
+    ).toBeInTheDocument();
+    expect(
+      JSON.parse(window.localStorage.getItem(HIDDEN_QUESTIONS_STORAGE_KEY)!)
+        .questions,
+    ).toHaveLength(0);
   });
 });

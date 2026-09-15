@@ -1,6 +1,7 @@
 /** The editable vocabulary pool. Add or remove entries here, then redeploy. */
 export type Article = 'der' | 'die' | 'das';
 export type Auxiliary = 'hat' | 'ist';
+export type Reflexive = 'no' | 'always' | 'sometimes';
 export type VerbCase = 'Akkusativ' | 'Dativ' | 'Akkusativ + Dativ';
 export type PresentPerson = 'ich' | 'du' | 'erSieEs' | 'wir' | 'ihr' | 'sieSie';
 export type PrepositionCase = 'Akkusativ' | 'Dativ';
@@ -26,6 +27,7 @@ export interface Verb {
   preterite?: Partial<Record<PresentPerson, string>>;
   pastParticiple?: string;
   auxiliary?: Auxiliary;
+  reflexive?: Reflexive | '';
   case?: VerbCase;
   notes?: string;
 }
@@ -371,6 +373,7 @@ export const vocabulary = {
     {
       id: 'fahren',
       infinitive: 'fahren',
+      reflexive: 'no',
       english: 'to drive / travel',
       present: { ich: 'fahre', du: 'fährst', erSieEs: 'fährt', ihr: 'fahrt' },
       pastParticiple: 'gefahren',
@@ -380,6 +383,7 @@ export const vocabulary = {
     {
       id: 'danken',
       infinitive: 'danken',
+      reflexive: 'no',
       english: 'to thank',
       present: { ich: 'danke', du: 'dankst', erSieEs: 'dankt' },
       pastParticiple: 'gedankt',
@@ -389,6 +393,7 @@ export const vocabulary = {
     {
       id: 'bezahlen',
       infinitive: 'bezahlen',
+      reflexive: 'no',
       english: 'to pay',
       present: { ich: 'bezahle', du: 'bezahlst', erSieEs: 'bezahlt' },
       pastParticiple: 'bezahlt',
@@ -398,6 +403,7 @@ export const vocabulary = {
     {
       id: 'essen',
       infinitive: 'essen',
+      reflexive: 'no',
       english: 'to eat',
       present: { ich: 'esse', du: 'isst', erSieEs: 'isst' },
       pastParticiple: 'gegessen',
@@ -407,6 +413,7 @@ export const vocabulary = {
     {
       id: 'schlafen',
       infinitive: 'schlafen',
+      reflexive: 'no',
       english: 'to sleep',
       present: { ich: 'schlafe', du: 'schläfst', erSieEs: 'schläft' },
       pastParticiple: 'geschlafen',
@@ -415,6 +422,7 @@ export const vocabulary = {
     {
       id: 'helfen',
       infinitive: 'helfen',
+      reflexive: 'no',
       english: 'to help',
       present: { ich: 'helfe', du: 'hilfst', erSieEs: 'hilft' },
       pastParticiple: 'geholfen',
@@ -424,6 +432,7 @@ export const vocabulary = {
     {
       id: 'lesen',
       infinitive: 'lesen',
+      reflexive: 'no',
       english: 'to read',
       present: { ich: 'lese', du: 'liest', erSieEs: 'liest' },
       pastParticiple: 'gelesen',
@@ -433,6 +442,7 @@ export const vocabulary = {
     {
       id: 'sprechen',
       infinitive: 'sprechen',
+      reflexive: 'no',
       english: 'to speak',
       present: { ich: 'spreche', du: 'sprichst', erSieEs: 'spricht' },
       pastParticiple: 'gesprochen',
@@ -441,6 +451,7 @@ export const vocabulary = {
     {
       id: 'wollen',
       infinitive: 'wollen',
+      reflexive: 'no',
       english: 'to want',
       present: { ich: 'will', du: 'willst', erSieEs: 'will', ihr: 'wollt' },
       preterite: {
@@ -455,6 +466,7 @@ export const vocabulary = {
     {
       id: 'muessen',
       infinitive: 'müssen',
+      reflexive: 'no',
       english: 'to have to / must',
       present: { ich: 'muss', du: 'musst', erSieEs: 'muss', ihr: 'müsst' },
       preterite: {
@@ -469,6 +481,7 @@ export const vocabulary = {
     {
       id: 'koennen',
       infinitive: 'können',
+      reflexive: 'no',
       english: 'to be able to / can',
       present: { ich: 'kann', du: 'kannst', erSieEs: 'kann', ihr: 'könnt' },
       preterite: {
@@ -483,6 +496,7 @@ export const vocabulary = {
     {
       id: 'duerfen',
       infinitive: 'dürfen',
+      reflexive: 'no',
       english: 'to be allowed to / may',
       present: { ich: 'darf', du: 'darfst', erSieEs: 'darf', ihr: 'dürft' },
       preterite: {
@@ -497,6 +511,7 @@ export const vocabulary = {
     {
       id: 'sollen',
       infinitive: 'sollen',
+      reflexive: 'no',
       english: 'to be supposed to / should',
       present: { ich: 'soll', du: 'sollst', erSieEs: 'soll', ihr: 'sollt' },
       preterite: {
@@ -511,6 +526,7 @@ export const vocabulary = {
     {
       id: 'verdienen',
       infinitive: 'verdienen',
+      reflexive: 'no',
       english: 'to earn / deserve',
       present: {
         ich: 'verdiene',
@@ -525,6 +541,7 @@ export const vocabulary = {
     {
       id: 'betreuen',
       infinitive: 'betreuen',
+      reflexive: 'no',
       english: 'to look after / supervise',
       present: {
         ich: 'betreue',
@@ -539,6 +556,7 @@ export const vocabulary = {
     {
       id: 'teilnehmen',
       infinitive: 'teilnehmen',
+      reflexive: 'no',
       english: 'to participate / take part',
       present: {
         ich: 'nehme teil',
@@ -553,6 +571,7 @@ export const vocabulary = {
     {
       id: 'begründen',
       infinitive: 'begründen',
+      reflexive: 'no',
       english: 'to justify / give a reason for',
       present: {
         ich: 'begründe',
@@ -567,6 +586,7 @@ export const vocabulary = {
     {
       id: 'absagen',
       infinitive: 'absagen',
+      reflexive: 'no',
       english: 'to cancel / decline',
       present: {
         ich: 'sage ab',
@@ -583,6 +603,7 @@ export const vocabulary = {
     {
       id: 'wechseln',
       infinitive: 'wechseln',
+      reflexive: 'no',
       english: 'to change / switch',
       present: {
         ich: 'wechsle',
@@ -596,6 +617,7 @@ export const vocabulary = {
     {
       id: 'vergleichen',
       infinitive: 'vergleichen',
+      reflexive: 'no',
       english: 'to compare',
       present: {
         ich: 'vergleiche',
@@ -612,6 +634,7 @@ export const vocabulary = {
     {
       id: 'auswaehlen',
       infinitive: 'auswählen',
+      reflexive: 'no',
       english: 'to select / choose',
       present: {
         ich: 'wähle aus',
@@ -626,6 +649,7 @@ export const vocabulary = {
     {
       id: 'bereiten',
       infinitive: 'bereiten',
+      reflexive: 'no',
       english: 'to prepare / cause',
       present: {
         ich: 'bereite',
@@ -640,6 +664,7 @@ export const vocabulary = {
     {
       id: 'umziehen',
       infinitive: 'umziehen',
+      reflexive: 'sometimes',
       english: 'to move house',
       present: {
         ich: 'ziehe um',
@@ -655,6 +680,7 @@ export const vocabulary = {
     {
       id: 'vorschlagen',
       infinitive: 'vorschlagen',
+      reflexive: 'no',
       english: 'to suggest / propose',
       present: {
         ich: 'schlage vor',
@@ -669,6 +695,7 @@ export const vocabulary = {
     {
       id: 'passieren',
       infinitive: 'passieren',
+      reflexive: 'no',
       english: 'to happen',
       present: {
         ich: 'passiere',
@@ -683,6 +710,7 @@ export const vocabulary = {
     {
       id: 'bekommen',
       infinitive: 'bekommen',
+      reflexive: 'no',
       english: 'to get / receive',
       present: {
         ich: 'bekomme',
@@ -697,6 +725,7 @@ export const vocabulary = {
     {
       id: 'raten',
       infinitive: 'raten',
+      reflexive: 'no',
       english: 'to advise / guess',
       present: { ich: 'rate', du: 'rätst', erSieEs: 'rät', ihr: 'ratet' },
       pastParticiple: 'geraten',
@@ -708,6 +737,7 @@ export const vocabulary = {
     {
       id: 'zusagen',
       infinitive: 'zusagen',
+      reflexive: 'no',
       english: 'to accept / agree',
       present: {
         ich: 'sage zu',
@@ -722,6 +752,7 @@ export const vocabulary = {
     {
       id: 'anbieten',
       infinitive: 'anbieten',
+      reflexive: 'sometimes',
       english: 'to offer',
       present: {
         ich: 'biete an',
@@ -736,6 +767,7 @@ export const vocabulary = {
     {
       id: 'bestellen',
       infinitive: 'bestellen',
+      reflexive: 'no',
       english: 'to order',
       present: {
         ich: 'bestelle',
@@ -750,6 +782,7 @@ export const vocabulary = {
     {
       id: 'bringen',
       infinitive: 'bringen',
+      reflexive: 'no',
       english: 'to bring',
       present: {
         ich: 'bringe',
@@ -764,6 +797,7 @@ export const vocabulary = {
     {
       id: 'empfehlen',
       infinitive: 'empfehlen',
+      reflexive: 'sometimes',
       english: 'to recommend',
       present: {
         ich: 'empfehle',
@@ -778,6 +812,7 @@ export const vocabulary = {
     {
       id: 'erklaeren',
       infinitive: 'erklären',
+      reflexive: 'sometimes',
       english: 'to explain',
       present: {
         ich: 'erkläre',
@@ -792,6 +827,7 @@ export const vocabulary = {
     {
       id: 'erzaehlen',
       infinitive: 'erzählen',
+      reflexive: 'no',
       english: 'to tell / recount',
       present: {
         ich: 'erzähle',
@@ -806,6 +842,7 @@ export const vocabulary = {
     {
       id: 'geben',
       infinitive: 'geben',
+      reflexive: 'no',
       english: 'to give',
       present: { ich: 'gebe', du: 'gibst', erSieEs: 'gibt', ihr: 'gebt' },
       pastParticiple: 'gegeben',
@@ -815,6 +852,7 @@ export const vocabulary = {
     {
       id: 'holen',
       infinitive: 'holen',
+      reflexive: 'no',
       english: 'to fetch / get',
       present: { ich: 'hole', du: 'holst', erSieEs: 'holt', ihr: 'holt' },
       pastParticiple: 'geholt',
@@ -824,6 +862,7 @@ export const vocabulary = {
     {
       id: 'kaufen',
       infinitive: 'kaufen',
+      reflexive: 'no',
       english: 'to buy',
       present: { ich: 'kaufe', du: 'kaufst', erSieEs: 'kauft', ihr: 'kauft' },
       pastParticiple: 'gekauft',
@@ -833,6 +872,7 @@ export const vocabulary = {
     {
       id: 'kochen',
       infinitive: 'kochen',
+      reflexive: 'no',
       english: 'to cook',
       present: { ich: 'koche', du: 'kochst', erSieEs: 'kocht', ihr: 'kocht' },
       pastParticiple: 'gekocht',
@@ -842,6 +882,7 @@ export const vocabulary = {
     {
       id: 'leihen',
       infinitive: 'leihen',
+      reflexive: 'sometimes',
       english: 'to lend / borrow',
       present: { ich: 'leihe', du: 'leihst', erSieEs: 'leiht', ihr: 'leiht' },
       pastParticiple: 'geliehen',
@@ -853,6 +894,7 @@ export const vocabulary = {
     {
       id: 'liefern',
       infinitive: 'liefern',
+      reflexive: 'no',
       english: 'to deliver / supply',
       present: {
         ich: 'liefere',
@@ -867,6 +909,7 @@ export const vocabulary = {
     {
       id: 'mitbringen',
       infinitive: 'mitbringen',
+      reflexive: 'no',
       english: 'to bring along',
       present: {
         ich: 'bringe mit',
@@ -881,6 +924,7 @@ export const vocabulary = {
     {
       id: 'renovieren',
       infinitive: 'renovieren',
+      reflexive: 'no',
       english: 'to renovate',
       present: {
         ich: 'renoviere',
@@ -895,6 +939,7 @@ export const vocabulary = {
     {
       id: 'sagen',
       infinitive: 'sagen',
+      reflexive: 'no',
       english: 'to say / tell',
       present: { ich: 'sage', du: 'sagst', erSieEs: 'sagt', ihr: 'sagt' },
       pastParticiple: 'gesagt',
@@ -904,6 +949,7 @@ export const vocabulary = {
     {
       id: 'schenken',
       infinitive: 'schenken',
+      reflexive: 'no',
       english: 'to give as a gift',
       present: {
         ich: 'schenke',
@@ -918,6 +964,7 @@ export const vocabulary = {
     {
       id: 'schicken',
       infinitive: 'schicken',
+      reflexive: 'no',
       english: 'to send',
       present: {
         ich: 'schicke',
@@ -932,6 +979,7 @@ export const vocabulary = {
     {
       id: 'schneiden',
       infinitive: 'schneiden',
+      reflexive: 'no',
       english: 'to cut',
       present: {
         ich: 'schneide',
@@ -946,6 +994,7 @@ export const vocabulary = {
     {
       id: 'schreiben',
       infinitive: 'schreiben',
+      reflexive: 'no',
       english: 'to write',
       present: {
         ich: 'schreibe',
@@ -960,6 +1009,7 @@ export const vocabulary = {
     {
       id: 'servieren',
       infinitive: 'servieren',
+      reflexive: 'no',
       english: 'to serve',
       present: {
         ich: 'serviere',
@@ -974,6 +1024,7 @@ export const vocabulary = {
     {
       id: 'verkaufen',
       infinitive: 'verkaufen',
+      reflexive: 'no',
       english: 'to sell',
       present: {
         ich: 'verkaufe',
@@ -988,6 +1039,7 @@ export const vocabulary = {
     {
       id: 'wuenschen',
       infinitive: 'wünschen',
+      reflexive: 'sometimes',
       english: 'to wish',
       present: {
         ich: 'wünsche',
@@ -1002,6 +1054,7 @@ export const vocabulary = {
     {
       id: 'zeigen',
       infinitive: 'zeigen',
+      reflexive: 'sometimes',
       english: 'to show',
       present: { ich: 'zeige', du: 'zeigst', erSieEs: 'zeigt', ihr: 'zeigt' },
       pastParticiple: 'gezeigt',
@@ -1011,6 +1064,7 @@ export const vocabulary = {
     {
       id: 'antworten',
       infinitive: 'antworten',
+      reflexive: 'no',
       english: 'to answer / reply',
       present: {
         ich: 'antworte',
@@ -1025,6 +1079,7 @@ export const vocabulary = {
     {
       id: 'fehlen',
       infinitive: 'fehlen',
+      reflexive: 'no',
       english: 'to be missing / lack',
       present: { ich: 'fehle', du: 'fehlst', erSieEs: 'fehlt', ihr: 'fehlt' },
       pastParticiple: 'gefehlt',
@@ -1035,6 +1090,7 @@ export const vocabulary = {
     {
       id: 'gefallen',
       infinitive: 'gefallen',
+      reflexive: 'no',
       english: 'to please / be pleasing to',
       present: {
         ich: 'gefalle',
@@ -1049,6 +1105,7 @@ export const vocabulary = {
     {
       id: 'gehen',
       infinitive: 'gehen',
+      reflexive: 'no',
       english: 'to go / walk',
       present: { ich: 'gehe', du: 'gehst', erSieEs: 'geht', ihr: 'geht' },
       pastParticiple: 'gegangen',
@@ -1057,6 +1114,7 @@ export const vocabulary = {
     {
       id: 'gehoeren',
       infinitive: 'gehören',
+      reflexive: 'no',
       english: 'to belong to',
       present: {
         ich: 'gehöre',
@@ -1071,6 +1129,7 @@ export const vocabulary = {
     {
       id: 'glauben',
       infinitive: 'glauben',
+      reflexive: 'no',
       english: 'to believe',
       present: {
         ich: 'glaube',
@@ -1087,6 +1146,7 @@ export const vocabulary = {
     {
       id: 'gratulieren',
       infinitive: 'gratulieren',
+      reflexive: 'no',
       english: 'to congratulate',
       present: {
         ich: 'gratuliere',
@@ -1101,6 +1161,7 @@ export const vocabulary = {
     {
       id: 'leidtun',
       infinitive: 'leidtun',
+      reflexive: 'no',
       english: 'to be sorry / cause sorrow',
       present: {
         ich: 'tue leid',
@@ -1116,6 +1177,7 @@ export const vocabulary = {
     {
       id: 'passen',
       infinitive: 'passen',
+      reflexive: 'no',
       english: 'to fit / suit',
       present: { ich: 'passe', du: 'passt', erSieEs: 'passt', ihr: 'passt' },
       pastParticiple: 'gepasst',
@@ -1125,6 +1187,7 @@ export const vocabulary = {
     {
       id: 'schmecken',
       infinitive: 'schmecken',
+      reflexive: 'no',
       english: 'to taste / taste good to',
       present: {
         ich: 'schmecke',
@@ -1139,6 +1202,7 @@ export const vocabulary = {
     {
       id: 'stehen',
       infinitive: 'stehen',
+      reflexive: 'no',
       english: 'to stand',
       present: { ich: 'stehe', du: 'stehst', erSieEs: 'steht', ihr: 'steht' },
       pastParticiple: 'gestanden',
@@ -1147,6 +1211,7 @@ export const vocabulary = {
     {
       id: 'wehtun',
       infinitive: 'wehtun',
+      reflexive: 'no',
       english: 'to hurt',
       present: {
         ich: 'tue weh',
@@ -1161,6 +1226,7 @@ export const vocabulary = {
     {
       id: 'zuhoeren',
       infinitive: 'zuhören',
+      reflexive: 'no',
       english: 'to listen to',
       present: {
         ich: 'höre zu',
@@ -1175,6 +1241,7 @@ export const vocabulary = {
     {
       id: 'weiterleiten',
       infinitive: 'weiterleiten',
+      reflexive: 'no',
       english: 'to forward / pass on',
       present: {
         ich: 'leite weiter',
@@ -1189,6 +1256,7 @@ export const vocabulary = {
     {
       id: 'speichern',
       infinitive: 'speichern',
+      reflexive: 'no',
       english: 'to save / store',
       present: {
         ich: 'speichere',
@@ -1203,6 +1271,7 @@ export const vocabulary = {
     {
       id: 'loeschen',
       infinitive: 'löschen',
+      reflexive: 'no',
       english: 'to delete / extinguish',
       present: {
         ich: 'lösche',
@@ -1217,6 +1286,7 @@ export const vocabulary = {
     {
       id: 'diskutieren',
       infinitive: 'diskutieren',
+      reflexive: 'no',
       english: 'to discuss',
       present: {
         ich: 'diskutiere',
@@ -1232,6 +1302,7 @@ export const vocabulary = {
     {
       id: 'finden',
       infinitive: 'finden',
+      reflexive: 'no',
       english: 'to find / consider',
       present: {
         ich: 'finde',
@@ -1246,6 +1317,7 @@ export const vocabulary = {
     {
       id: 'wissen',
       infinitive: 'wissen',
+      reflexive: 'no',
       english: 'to know',
       present: { ich: 'weiß', du: 'weißt', erSieEs: 'weiß', ihr: 'wisst' },
       pastParticiple: 'gewusst',
@@ -1255,6 +1327,7 @@ export const vocabulary = {
     {
       id: 'verstehen',
       infinitive: 'verstehen',
+      reflexive: 'sometimes',
       english: 'to understand',
       present: {
         ich: 'verstehe',
@@ -1269,6 +1342,7 @@ export const vocabulary = {
     {
       id: 'entdecken',
       infinitive: 'entdecken',
+      reflexive: 'no',
       english: 'to discover',
       present: {
         ich: 'entdecke',
@@ -1283,6 +1357,7 @@ export const vocabulary = {
     {
       id: 'empfangen',
       infinitive: 'empfangen',
+      reflexive: 'no',
       english: 'to receive / welcome',
       present: {
         ich: 'empfange',
@@ -1297,6 +1372,7 @@ export const vocabulary = {
     {
       id: 'gruenden',
       infinitive: 'gründen',
+      reflexive: 'no',
       english: 'to found / establish',
       present: {
         ich: 'gründe',
@@ -1311,6 +1387,7 @@ export const vocabulary = {
     {
       id: 'nerven',
       infinitive: 'nerven',
+      reflexive: 'no',
       english: 'to annoy',
       present: { ich: 'nerve', du: 'nervst', erSieEs: 'nervt', ihr: 'nervt' },
       pastParticiple: 'genervt',
@@ -1320,6 +1397,7 @@ export const vocabulary = {
     {
       id: 'hochladen',
       infinitive: 'hochladen',
+      reflexive: 'no',
       english: 'to upload',
       present: {
         ich: 'lade hoch',
@@ -1334,6 +1412,7 @@ export const vocabulary = {
     {
       id: 'merken',
       infinitive: 'merken',
+      reflexive: 'sometimes',
       english: 'to notice / remember',
       present: { ich: 'merke', du: 'merkst', erSieEs: 'merkt', ihr: 'merkt' },
       pastParticiple: 'gemerkt',
@@ -1343,6 +1422,7 @@ export const vocabulary = {
     {
       id: 'sterben',
       infinitive: 'sterben',
+      reflexive: 'no',
       english: 'to die',
       present: {
         ich: 'sterbe',
@@ -1356,6 +1436,7 @@ export const vocabulary = {
     {
       id: 'schmuecken',
       infinitive: 'schmücken',
+      reflexive: 'no',
       english: 'to decorate / adorn',
       present: {
         ich: 'schmücke',
@@ -1370,6 +1451,7 @@ export const vocabulary = {
     {
       id: 'benutzen',
       infinitive: 'benutzen',
+      reflexive: 'no',
       english: 'to use',
       present: {
         ich: 'benutze',
@@ -1384,6 +1466,7 @@ export const vocabulary = {
     {
       id: 'entscheiden',
       infinitive: 'entscheiden',
+      reflexive: 'sometimes',
       english: 'to decide',
       present: {
         ich: 'entscheide',
@@ -1400,6 +1483,7 @@ export const vocabulary = {
     {
       id: 'schaffen',
       infinitive: 'schaffen',
+      reflexive: 'no',
       english: 'to manage / accomplish',
       present: {
         ich: 'schaffe',
@@ -1414,6 +1498,7 @@ export const vocabulary = {
     {
       id: 'werben',
       infinitive: 'werben',
+      reflexive: 'no',
       english: 'to advertise / recruit',
       present: { ich: 'werbe', du: 'wirbst', erSieEs: 'wirbt', ihr: 'werbt' },
       pastParticiple: 'geworben',
@@ -1423,6 +1508,7 @@ export const vocabulary = {
     {
       id: 'ablehnen',
       infinitive: 'ablehnen',
+      reflexive: 'no',
       english: 'to reject / decline',
       present: {
         ich: 'lehne ab',
@@ -1437,6 +1523,7 @@ export const vocabulary = {
     {
       id: 'zustimmen',
       infinitive: 'zustimmen',
+      reflexive: 'no',
       english: 'to agree with / approve',
       present: {
         ich: 'stimme zu',
@@ -1451,6 +1538,7 @@ export const vocabulary = {
     {
       id: 'verlieren',
       infinitive: 'verlieren',
+      reflexive: 'no',
       english: 'to lose',
       present: {
         ich: 'verliere',
@@ -1461,6 +1549,868 @@ export const vocabulary = {
       pastParticiple: 'verloren',
       auxiliary: 'hat',
       case: 'Akkusativ',
+    },
+
+    {
+      id: 'abtrocknen',
+      infinitive: 'abtrocknen',
+      reflexive: 'sometimes',
+      english: 'to dry off / dry',
+      present: {
+        ich: 'trockne ab',
+        du: 'trocknest ab',
+        erSieEs: 'trocknet ab',
+        ihr: 'trocknet ab',
+      },
+      pastParticiple: 'abgetrocknet',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich abtrocknen means to dry oneself.',
+    },
+    {
+      id: 'anmelden',
+      infinitive: 'anmelden',
+      reflexive: 'sometimes',
+      english: 'to register / sign up',
+      present: {
+        ich: 'melde an',
+        du: 'meldest an',
+        erSieEs: 'meldet an',
+        ihr: 'meldet an',
+      },
+      pastParticiple: 'angemeldet',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich anmelden means to register oneself.',
+    },
+    {
+      id: 'anstrengen',
+      infinitive: 'anstrengen',
+      reflexive: 'sometimes',
+      english: 'to exert / strain',
+      present: {
+        ich: 'strenge an',
+        du: 'strengst an',
+        erSieEs: 'strengt an',
+        ihr: 'strengt an',
+      },
+      pastParticiple: 'angestrengt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich anstrengen means to make an effort.',
+    },
+    {
+      id: 'anziehen',
+      infinitive: 'anziehen',
+      reflexive: 'sometimes',
+      english: 'to put on / attract',
+      present: {
+        ich: 'ziehe an',
+        du: 'ziehst an',
+        erSieEs: 'zieht an',
+        ihr: 'zieht an',
+      },
+      pastParticiple: 'angezogen',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich anziehen means to get dressed.',
+    },
+    {
+      id: 'auflegen',
+      infinitive: 'auflegen',
+      reflexive: 'sometimes',
+      english: 'to put down / hang up',
+      present: {
+        ich: 'lege auf',
+        du: 'legst auf',
+        erSieEs: 'legt auf',
+        ihr: 'legt auf',
+      },
+      pastParticiple: 'aufgelegt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich etwas auflegen means to impose something on oneself.',
+    },
+    {
+      id: 'aufregen',
+      infinitive: 'aufregen',
+      reflexive: 'sometimes',
+      english: 'to upset / get upset',
+      present: {
+        ich: 'rege auf',
+        du: 'regst auf',
+        erSieEs: 'regt auf',
+        ihr: 'regt auf',
+      },
+      pastParticiple: 'aufgeregt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich aufregen means to get upset.',
+    },
+    {
+      id: 'ausruhen',
+      infinitive: 'ausruhen',
+      reflexive: 'sometimes',
+      english: 'to rest / relax',
+      present: {
+        ich: 'ruhe aus',
+        du: 'ruhst aus',
+        erSieEs: 'ruht aus',
+        ihr: 'ruht aus',
+      },
+      pastParticiple: 'ausgeruht',
+      auxiliary: 'hat',
+      notes: 'Can also be used without sich.',
+    },
+    {
+      id: 'bedanken',
+      infinitive: 'bedanken',
+      reflexive: 'always',
+      english: 'to thank / express thanks',
+      present: {
+        ich: 'bedanke mich',
+        du: 'bedankst dich',
+        erSieEs: 'bedankt sich',
+        ihr: 'bedankt euch',
+      },
+      pastParticiple: 'bedankt',
+      auxiliary: 'hat',
+      notes:
+        'sich bei jemandem für etwas bedanken means to thank someone for something.',
+    },
+    {
+      id: 'beeilen',
+      infinitive: 'beeilen',
+      reflexive: 'always',
+      english: 'to hurry',
+      present: {
+        ich: 'beeile mich',
+        du: 'beeilst dich',
+        erSieEs: 'beeilt sich',
+        ihr: 'beeilt euch',
+      },
+      pastParticiple: 'beeilt',
+      auxiliary: 'hat',
+      notes: 'sich beeilen is always reflexive.',
+    },
+    {
+      id: 'befinden',
+      infinitive: 'befinden',
+      reflexive: 'sometimes',
+      english: 'to be located / consider',
+      present: {
+        ich: 'befinde',
+        du: 'befindest',
+        erSieEs: 'befindet',
+        ihr: 'befindet',
+      },
+      pastParticiple: 'befunden',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes:
+        'sich befinden means to be located; etwas für gut befinden means to consider it good.',
+    },
+    {
+      id: 'begegnen',
+      infinitive: 'begegnen',
+      reflexive: 'sometimes',
+      english: 'to encounter / meet',
+      present: {
+        ich: 'begegne',
+        du: 'begegnest',
+        erSieEs: 'begegnet',
+        ihr: 'begegnet',
+      },
+      pastParticiple: 'begegnet',
+      auxiliary: 'ist',
+      case: 'Dativ',
+      notes:
+        'jemandem begegnen takes Dativ; sich begegnen means to meet each other.',
+    },
+    {
+      id: 'beschweren',
+      infinitive: 'beschweren',
+      reflexive: 'sometimes',
+      english: 'to complain / burden',
+      present: {
+        ich: 'beschwere',
+        du: 'beschwerst',
+        erSieEs: 'beschwert',
+        ihr: 'beschwert',
+      },
+      pastParticiple: 'beschwert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich über etwas beschweren means to complain.',
+    },
+    {
+      id: 'bewerben',
+      infinitive: 'bewerben',
+      reflexive: 'sometimes',
+      english: 'to apply / advertise',
+      present: {
+        ich: 'bewerbe',
+        du: 'bewirbst',
+        erSieEs: 'bewirbt',
+        ihr: 'bewerbt',
+      },
+      pastParticiple: 'beworben',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich um eine Stelle bewerben means to apply for a job.',
+    },
+    {
+      id: 'bewegen',
+      infinitive: 'bewegen',
+      reflexive: 'sometimes',
+      english: 'to move',
+      present: {
+        ich: 'bewege',
+        du: 'bewegst',
+        erSieEs: 'bewegt',
+        ihr: 'bewegt',
+      },
+      pastParticiple: 'bewegt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich bewegen means to move oneself.',
+    },
+    {
+      id: 'buecken',
+      infinitive: 'bücken',
+      reflexive: 'always',
+      english: 'to bend down / stoop',
+      present: {
+        ich: 'bücke mich',
+        du: 'bückst dich',
+        erSieEs: 'bückt sich',
+        ihr: 'bückt euch',
+      },
+      pastParticiple: 'gebückt',
+      auxiliary: 'hat',
+      notes: 'sich bücken means to bend down.',
+    },
+    {
+      id: 'duschen',
+      infinitive: 'duschen',
+      reflexive: 'sometimes',
+      english: 'to shower / wash',
+      present: {
+        ich: 'dusche',
+        du: 'duschst',
+        erSieEs: 'duscht',
+        ihr: 'duscht',
+      },
+      pastParticiple: 'geduscht',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich duschen means to shower oneself.',
+    },
+    {
+      id: 'erinnern',
+      infinitive: 'erinnern',
+      reflexive: 'sometimes',
+      english: 'to remember / remind',
+      present: {
+        ich: 'erinnere',
+        du: 'erinnerst',
+        erSieEs: 'erinnert',
+        ihr: 'erinnert',
+      },
+      pastParticiple: 'erinnert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich an etwas erinnern means to remember it.',
+    },
+    {
+      id: 'erholen',
+      infinitive: 'erholen',
+      reflexive: 'always',
+      english: 'to recover / relax',
+      present: {
+        ich: 'erhole mich',
+        du: 'erholst dich',
+        erSieEs: 'erholt sich',
+        ihr: 'erholt euch',
+      },
+      pastParticiple: 'erholt',
+      auxiliary: 'hat',
+      notes: 'sich erholen means to recover or relax.',
+    },
+    {
+      id: 'erkaelten',
+      infinitive: 'erkälten',
+      reflexive: 'sometimes',
+      english: 'to catch a cold / chill',
+      present: {
+        ich: 'erkälte',
+        du: 'erkältest',
+        erSieEs: 'erkältet',
+        ihr: 'erkältet',
+      },
+      pastParticiple: 'erkältet',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich erkälten means to catch a cold.',
+    },
+    {
+      id: 'erkundigen',
+      infinitive: 'erkundigen',
+      reflexive: 'always',
+      english: 'to inquire / find out',
+      present: {
+        ich: 'erkundige mich',
+        du: 'erkundigst dich',
+        erSieEs: 'erkundigt sich',
+        ihr: 'erkundigt euch',
+      },
+      pastParticiple: 'erkundigt',
+      auxiliary: 'hat',
+      notes: 'sich bei jemandem nach etwas erkundigen means to inquire.',
+    },
+    {
+      id: 'entschuldigen',
+      infinitive: 'entschuldigen',
+      reflexive: 'sometimes',
+      english: 'to apologize / excuse',
+      present: {
+        ich: 'entschuldige',
+        du: 'entschuldigst',
+        erSieEs: 'entschuldigt',
+        ihr: 'entschuldigt',
+      },
+      pastParticiple: 'entschuldigt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich entschuldigen means to apologize.',
+    },
+    {
+      id: 'foehnen',
+      infinitive: 'föhnen',
+      reflexive: 'sometimes',
+      english: 'to blow-dry',
+      present: {
+        ich: 'föhne',
+        du: 'föhnst',
+        erSieEs: 'föhnt',
+        ihr: 'föhnt',
+      },
+      pastParticiple: 'geföhnt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: "sich föhnen means to blow-dry one's own hair.",
+    },
+    {
+      id: 'fragen',
+      infinitive: 'fragen',
+      reflexive: 'sometimes',
+      english: 'to ask / wonder',
+      present: {
+        ich: 'frage',
+        du: 'fragst',
+        erSieEs: 'fragt',
+        ihr: 'fragt',
+      },
+      pastParticiple: 'gefragt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich fragen means to wonder.',
+    },
+    {
+      id: 'freuen',
+      infinitive: 'freuen',
+      reflexive: 'sometimes',
+      english: 'to please / look forward to',
+      present: {
+        ich: 'freue',
+        du: 'freust',
+        erSieEs: 'freut',
+        ihr: 'freut',
+      },
+      pastParticiple: 'gefreut',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich auf etwas freuen means to look forward to it.',
+    },
+    {
+      id: 'fuehlen',
+      infinitive: 'fühlen',
+      reflexive: 'sometimes',
+      english: 'to feel',
+      present: {
+        ich: 'fühle',
+        du: 'fühlst',
+        erSieEs: 'fühlt',
+        ihr: 'fühlt',
+      },
+      pastParticiple: 'gefühlt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich fühlen describes how one feels.',
+    },
+    {
+      id: 'fuerchten',
+      infinitive: 'fürchten',
+      reflexive: 'sometimes',
+      english: 'to fear',
+      present: {
+        ich: 'fürchte',
+        du: 'fürchtest',
+        erSieEs: 'fürchtet',
+        ihr: 'fürchtet',
+      },
+      pastParticiple: 'gefürchtet',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich vor etwas fürchten means to be afraid of it.',
+    },
+    {
+      id: 'gewoehnen',
+      infinitive: 'gewöhnen',
+      reflexive: 'sometimes',
+      english: 'to accustom / get used to',
+      present: {
+        ich: 'gewöhne',
+        du: 'gewöhnst',
+        erSieEs: 'gewöhnt',
+        ihr: 'gewöhnt',
+      },
+      pastParticiple: 'gewöhnt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich an etwas gewöhnen means to get used to it.',
+    },
+    {
+      id: 'interessieren',
+      infinitive: 'interessieren',
+      reflexive: 'sometimes',
+      english: 'to interest / be interested',
+      present: {
+        ich: 'interessiere',
+        du: 'interessierst',
+        erSieEs: 'interessiert',
+        ihr: 'interessiert',
+      },
+      pastParticiple: 'interessiert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich für etwas interessieren means to be interested in it.',
+    },
+    {
+      id: 'kaemmen',
+      infinitive: 'kämmen',
+      reflexive: 'sometimes',
+      english: 'to comb',
+      present: {
+        ich: 'kämme',
+        du: 'kämmst',
+        erSieEs: 'kämmt',
+        ihr: 'kämmt',
+      },
+      pastParticiple: 'gekämmt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich kämmen means to comb oneself.',
+    },
+    {
+      id: 'konzentrieren',
+      infinitive: 'konzentrieren',
+      reflexive: 'sometimes',
+      english: 'to concentrate / focus',
+      present: {
+        ich: 'konzentriere',
+        du: 'konzentrierst',
+        erSieEs: 'konzentriert',
+        ihr: 'konzentriert',
+      },
+      pastParticiple: 'konzentriert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich auf etwas konzentrieren means to focus.',
+    },
+    {
+      id: 'kuemmern',
+      infinitive: 'kümmern',
+      reflexive: 'sometimes',
+      english: 'to care for / concern',
+      present: {
+        ich: 'kümmere',
+        du: 'kümmerst',
+        erSieEs: 'kümmert',
+        ihr: 'kümmert',
+      },
+      pastParticiple: 'gekümmert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich um jemanden kümmern means to care for them.',
+    },
+    {
+      id: 'lassen',
+      infinitive: 'lassen',
+      reflexive: 'sometimes',
+      english: 'to let / leave',
+      present: {
+        ich: 'lasse',
+        du: 'lässt',
+        erSieEs: 'lässt',
+        ihr: 'lasst',
+      },
+      pastParticiple: 'gelassen',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich etwas gefallen lassen means to put up with it.',
+    },
+    {
+      id: 'legen',
+      infinitive: 'legen',
+      reflexive: 'sometimes',
+      english: 'to lay / put',
+      present: {
+        ich: 'lege',
+        du: 'legst',
+        erSieEs: 'legt',
+        ihr: 'legt',
+      },
+      pastParticiple: 'gelegt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes:
+        'sich legen means to subside or settle; sich hinlegen uses a separate verb.',
+    },
+    {
+      id: 'naehern',
+      infinitive: 'nähern',
+      reflexive: 'always',
+      english: 'to approach / draw near',
+      present: {
+        ich: 'nähere mich',
+        du: 'näherst dich',
+        erSieEs: 'nähert sich',
+        ihr: 'nähert euch',
+      },
+      pastParticiple: 'genähert',
+      auxiliary: 'hat',
+      case: 'Dativ',
+      notes: 'sich jemandem oder etwas nähern takes Dativ for the target.',
+    },
+    {
+      id: 'nennen',
+      infinitive: 'nennen',
+      reflexive: 'sometimes',
+      english: 'to name / call',
+      present: {
+        ich: 'nenne',
+        du: 'nennst',
+        erSieEs: 'nennt',
+        ihr: 'nennt',
+      },
+      pastParticiple: 'genannt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich nennen means to call oneself.',
+    },
+    {
+      id: 'rasieren',
+      infinitive: 'rasieren',
+      reflexive: 'sometimes',
+      english: 'to shave',
+      present: {
+        ich: 'rasiere',
+        du: 'rasierst',
+        erSieEs: 'rasiert',
+        ihr: 'rasiert',
+      },
+      pastParticiple: 'rasiert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich rasieren means to shave oneself.',
+    },
+    {
+      id: 'schaemen',
+      infinitive: 'schämen',
+      reflexive: 'always',
+      english: 'to be ashamed',
+      present: {
+        ich: 'schäme mich',
+        du: 'schämst dich',
+        erSieEs: 'schämt sich',
+        ihr: 'schämt euch',
+      },
+      pastParticiple: 'geschämt',
+      auxiliary: 'hat',
+      notes: 'sich für etwas schämen means to be ashamed of it.',
+    },
+    {
+      id: 'schminken',
+      infinitive: 'schminken',
+      reflexive: 'sometimes',
+      english: 'to apply makeup',
+      present: {
+        ich: 'schminke',
+        du: 'schminkst',
+        erSieEs: 'schminkt',
+        ihr: 'schminkt',
+      },
+      pastParticiple: 'geschminkt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich schminken means to put makeup on oneself.',
+    },
+    {
+      id: 'setzen',
+      infinitive: 'setzen',
+      reflexive: 'sometimes',
+      english: 'to set / seat',
+      present: {
+        ich: 'setze',
+        du: 'setzt',
+        erSieEs: 'setzt',
+        ihr: 'setzt',
+      },
+      pastParticiple: 'gesetzt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich setzen means to sit down.',
+    },
+    {
+      id: 'sonnen',
+      infinitive: 'sonnen',
+      reflexive: 'sometimes',
+      english: 'to sunbathe / expose to sun',
+      present: {
+        ich: 'sonne',
+        du: 'sonnst',
+        erSieEs: 'sonnt',
+        ihr: 'sonnt',
+      },
+      pastParticiple: 'gesonnt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich sonnen means to sunbathe.',
+    },
+    {
+      id: 'streiten',
+      infinitive: 'streiten',
+      reflexive: 'sometimes',
+      english: 'to argue / dispute',
+      present: {
+        ich: 'streite',
+        du: 'streitest',
+        erSieEs: 'streitet',
+        ihr: 'streitet',
+      },
+      pastParticiple: 'gestritten',
+      auxiliary: 'hat',
+      notes:
+        'sich streiten means to argue with each other; streiten can be used without sich.',
+    },
+    {
+      id: 'treffen',
+      infinitive: 'treffen',
+      reflexive: 'sometimes',
+      english: 'to meet / hit',
+      present: {
+        ich: 'treffe',
+        du: 'triffst',
+        erSieEs: 'trifft',
+        ihr: 'trefft',
+      },
+      pastParticiple: 'getroffen',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich treffen means to meet each other.',
+    },
+    {
+      id: 'umdrehen',
+      infinitive: 'umdrehen',
+      reflexive: 'sometimes',
+      english: 'to turn around / turn over',
+      present: {
+        ich: 'drehe um',
+        du: 'drehst um',
+        erSieEs: 'dreht um',
+        ihr: 'dreht um',
+      },
+      pastParticiple: 'umgedreht',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich umdrehen means to turn oneself around.',
+    },
+    {
+      id: 'unterhalten',
+      infinitive: 'unterhalten',
+      reflexive: 'sometimes',
+      english: 'to entertain / converse',
+      present: {
+        ich: 'unterhalte',
+        du: 'unterhältst',
+        erSieEs: 'unterhält',
+        ihr: 'unterhaltet',
+      },
+      pastParticiple: 'unterhalten',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich mit jemandem unterhalten means to converse.',
+    },
+    {
+      id: 'verabschieden',
+      infinitive: 'verabschieden',
+      reflexive: 'sometimes',
+      english: 'to say goodbye / pass',
+      present: {
+        ich: 'verabschiede',
+        du: 'verabschiedest',
+        erSieEs: 'verabschiedet',
+        ihr: 'verabschiedet',
+      },
+      pastParticiple: 'verabschiedet',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich von jemandem verabschieden means to say goodbye.',
+    },
+    {
+      id: 'verletzen',
+      infinitive: 'verletzen',
+      reflexive: 'sometimes',
+      english: 'to injure / violate',
+      present: {
+        ich: 'verletze',
+        du: 'verletzt',
+        erSieEs: 'verletzt',
+        ihr: 'verletzt',
+      },
+      pastParticiple: 'verletzt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich verletzen means to injure oneself.',
+    },
+    {
+      id: 'verlieben',
+      infinitive: 'verlieben',
+      reflexive: 'always',
+      english: 'to fall in love',
+      present: {
+        ich: 'verliebe mich',
+        du: 'verliebst dich',
+        erSieEs: 'verliebt sich',
+        ihr: 'verliebt euch',
+      },
+      pastParticiple: 'verliebt',
+      auxiliary: 'hat',
+      notes: 'sich in jemanden verlieben means to fall in love.',
+    },
+    {
+      id: 'verteidigen',
+      infinitive: 'verteidigen',
+      reflexive: 'sometimes',
+      english: 'to defend',
+      present: {
+        ich: 'verteidige',
+        du: 'verteidigst',
+        erSieEs: 'verteidigt',
+        ihr: 'verteidigt',
+      },
+      pastParticiple: 'verteidigt',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich verteidigen means to defend oneself.',
+    },
+    {
+      id: 'vorbereiten',
+      infinitive: 'vorbereiten',
+      reflexive: 'sometimes',
+      english: 'to prepare',
+      present: {
+        ich: 'bereite vor',
+        du: 'bereitest vor',
+        erSieEs: 'bereitet vor',
+        ihr: 'bereitet vor',
+      },
+      pastParticiple: 'vorbereitet',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich auf etwas vorbereiten means to prepare oneself.',
+    },
+    {
+      id: 'waschen',
+      infinitive: 'waschen',
+      reflexive: 'sometimes',
+      english: 'to wash',
+      present: {
+        ich: 'wasche',
+        du: 'wäschst',
+        erSieEs: 'wäscht',
+        ihr: 'wascht',
+      },
+      pastParticiple: 'gewaschen',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich waschen means to wash oneself.',
+    },
+    {
+      id: 'wiegen',
+      infinitive: 'wiegen',
+      reflexive: 'no',
+      english: 'to weigh',
+      present: {
+        ich: 'wiege',
+        du: 'wiegst',
+        erSieEs: 'wiegt',
+        ihr: 'wiegt',
+      },
+      pastParticiple: 'gewogen',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes:
+        'The separate weak verb wiegen means to rock or sway and has the participle gewiegt.',
+    },
+    {
+      id: 'wundern',
+      infinitive: 'wundern',
+      reflexive: 'sometimes',
+      english: 'to wonder / surprise',
+      present: {
+        ich: 'wundere',
+        du: 'wunderst',
+        erSieEs: 'wundert',
+        ihr: 'wundert',
+      },
+      pastParticiple: 'gewundert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich über etwas wundern means to wonder about it.',
+    },
+    {
+      id: 'aendern',
+      infinitive: 'ändern',
+      reflexive: 'sometimes',
+      english: 'to change / alter',
+      present: {
+        ich: 'ändere',
+        du: 'änderst',
+        erSieEs: 'ändert',
+        ihr: 'ändert',
+      },
+      pastParticiple: 'geändert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich ändern means to change oneself.',
+    },
+    {
+      id: 'aergern',
+      infinitive: 'ärgern',
+      reflexive: 'sometimes',
+      english: 'to annoy / get annoyed',
+      present: {
+        ich: 'ärgere',
+        du: 'ärgerst',
+        erSieEs: 'ärgert',
+        ihr: 'ärgert',
+      },
+      pastParticiple: 'geärgert',
+      auxiliary: 'hat',
+      case: 'Akkusativ',
+      notes: 'sich über etwas ärgern means to get annoyed.',
     },
   ],
   prepositions: CANONICAL_PREPOSITIONS,

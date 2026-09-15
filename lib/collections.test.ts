@@ -37,6 +37,7 @@ const validCsv = [
     present_ihr: 'lernt',
     past_participle: 'gelernt',
     auxiliary: 'hat',
+    reflexive: 'sometimes',
     notes: 'A useful, regular verb',
   }),
   csvRow({ type: 'preposition', german: 'mit', usage: 'fixed', case: 'Dativ' }),
@@ -114,6 +115,65 @@ describe('vocabulary CSV collections', () => {
     const roundTrip = parseVocabularyCsv(vocabularyToCsv(imported));
     expect(roundTrip.errors).toEqual([]);
     expect(roundTrip.vocabulary).toEqual(imported);
+  });
+
+  it('accepts older CSVs without reflexive and validates new values', () => {
+    const oldColumns = CSV_COLUMNS.filter((column) => column !== 'reflexive');
+    const oldCsv = [
+      oldColumns.join(','),
+      oldColumns
+        .map(
+          (column) =>
+            ({ type: 'verb', german: 'lernen', english: 'to learn' })[
+              column as 'type' | 'german' | 'english'
+            ] ?? '',
+        )
+        .join(','),
+    ].join('\n');
+    expect(
+      parseVocabularyCsv(oldCsv).vocabulary?.verbs[0].reflexive,
+    ).toBeUndefined();
+    const invalid = [
+      CSV_COLUMNS.join(','),
+      csvRow({
+        type: 'verb',
+        german: 'lernen',
+        english: 'to learn',
+        reflexive: 'occasionally',
+      }),
+    ].join('\n');
+    expect(parseVocabularyCsv(invalid).errors).toContain(
+      'Row 2: reflexive must be no, always, or sometimes.',
+    );
+  });
+
+  it('loads older stored verbs and rejects invalid reflexive values', () => {
+    const collection = {
+      id: 'old',
+      name: 'Old',
+      createdAt: 'now',
+      updatedAt: 'now',
+      vocabulary: {
+        nouns: [],
+        verbs: [{ id: 'learn', infinitive: 'lernen', english: 'to learn' }],
+        prepositions: [],
+        adjectivesAndAdverbs: [],
+      },
+    };
+    window.localStorage.setItem(
+      COLLECTIONS_STORAGE_KEY,
+      JSON.stringify([collection]),
+    );
+    expect(loadCollections()).toHaveLength(1);
+    collection.vocabulary.verbs[0] = {
+      ...collection.vocabulary.verbs[0],
+      reflexive: 'invalid',
+    } as (typeof collection.vocabulary.verbs)[0];
+    window.localStorage.setItem(
+      COLLECTIONS_STORAGE_KEY,
+      JSON.stringify([collection]),
+    );
+    expect(loadCollections()).toEqual([]);
   });
 
   it('skips duplicate words across selected collections, case-insensitively', () => {
