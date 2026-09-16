@@ -108,6 +108,7 @@ declare global {
 }
 
 type Screen = 'setup' | 'quiz' | 'results';
+type ReviewFilter = 'all' | 'wrong' | 'correct';
 interface AnswerRecord {
   question: QuizQuestion;
   answer: string;
@@ -258,6 +259,7 @@ export default function Home() {
   const [answer, setAnswer] = useState('');
   const draftAnswerRef = useRef('');
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
   const [newlyMasteredKeys, setNewlyMasteredKeys] = useState<Set<string>>(
     new Set(),
   );
@@ -365,6 +367,7 @@ export default function Home() {
       draftAnswerRef.current = '';
       setAnswer('');
       setAnswers([]);
+      setReviewFilter('all');
       setNewlyMasteredKeys(new Set());
       setFeedback(null);
       setMasteryConfirmed(false);
@@ -1661,6 +1664,15 @@ export default function Home() {
 
   if (screen === 'results') {
     const correctCount = answers.filter((item) => item.correct).length;
+    const visibleAnswers = answers
+      .map((record, index) => ({ record, index }))
+      .filter(({ record }) =>
+        reviewFilter === 'all'
+          ? true
+          : reviewFilter === 'correct'
+            ? record.correct
+            : !record.correct,
+      );
     const resultsActions = (
       <div className="results-actions">
         <Button
@@ -1717,71 +1729,111 @@ export default function Home() {
           {resultsActions}
         </header>
         <section className="review-list" aria-label="Answer review">
-          {answers.map((record, index) => (
-            <article
-              key={record.question.id}
-              className={`review-card ${record.correct ? 'review-correct' : 'review-wrong'}`}
-            >
-              <div className="review-top">
-                <span>Question {index + 1}</span>
-                {record.correct ? (
-                  <span className="status correct">
-                    <Check size={15} /> Correct
-                  </span>
-                ) : (
-                  <span className="status wrong">
-                    <X size={15} /> Review
-                  </span>
-                )}
-              </div>
-              <h2>{record.question.prompt}</h2>
-              {record.question.prepositionDiagram && (
-                <PrepositionDiagram className="review-preposition-diagram" />
-              )}
-              <dl>
-                <div>
-                  <dt>Your answer</dt>
-                  <dd>{record.answer}</dd>
-                </div>
-                {!record.correct && (
-                  <div>
-                    <dt>Correct answer</dt>
-                    <dd>
-                      {withAnswerPrefix(
-                        record.question,
-                        record.question.correctAnswer,
-                      )}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              {record.question.notes && (
-                <p className="review-note">{record.question.notes}</p>
-              )}
+          <fieldset className="review-filters">
+            <legend className="visually-hidden">Filter questions</legend>
+            {(
+              [
+                ['all', 'All questions'],
+                ['wrong', 'Only wrong'],
+                ['correct', 'Only correct'],
+              ] as const
+            ).map(([filter, label]) => (
               <button
+                key={filter}
                 type="button"
-                className={`hide-question-button ${hiddenQuestionKeys.has(record.question.questionKey) ? 'is-hidden' : ''}`}
-                aria-pressed={hiddenQuestionKeys.has(
-                  record.question.questionKey,
-                )}
-                onClick={() =>
-                  hiddenQuestionKeys.has(record.question.questionKey)
-                    ? practiceQuestionAgain(record.question.questionKey)
-                    : masterQuestion(record.question)
-                }
+                className="review-filter"
+                aria-pressed={reviewFilter === filter}
+                onClick={() => setReviewFilter(filter)}
               >
-                {hiddenQuestionKeys.has(record.question.questionKey) ? (
-                  <>
-                    <Eye size={17} /> Practice this question again
-                  </>
-                ) : (
-                  <>
-                    <EyeOff size={17} /> Master this question
-                  </>
-                )}
+                {label}
               </button>
-            </article>
-          ))}
+            ))}
+          </fieldset>
+          {visibleAnswers.length === 0 ? (
+            <p className="review-empty">
+              {reviewFilter === 'wrong'
+                ? 'No wrong answers in this quiz.'
+                : 'No correct answers in this quiz.'}
+            </p>
+          ) : (
+            <ol className="review-items">
+              {visibleAnswers.map(({ record, index }) => {
+                const isMastered = hiddenQuestionKeys.has(
+                  record.question.questionKey,
+                );
+                return (
+                  <li key={record.question.id} className="review-item">
+                    <div className="review-question-row">
+                      <span className="review-number">{index + 1}.</span>
+                      <span
+                        className={`review-status ${record.correct ? 'correct' : 'wrong'}`}
+                      >
+                        {record.correct ? (
+                          <Check size={16} aria-hidden="true" />
+                        ) : (
+                          <X size={16} aria-hidden="true" />
+                        )}
+                        <span className="visually-hidden">
+                          {record.correct ? 'Correct' : 'Wrong'}
+                        </span>
+                      </span>
+                      <h2>{record.question.prompt}</h2>
+                    </div>
+                    <div className="review-answer-row">
+                      <dl>
+                        <div>
+                          <dt>Your answer</dt>
+                          <dd>{record.answer}</dd>
+                        </div>
+                        <div>
+                          <dt>Correct answer</dt>
+                          <dd>
+                            {withAnswerPrefix(
+                              record.question,
+                              record.question.correctAnswer,
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                      <button
+                        type="button"
+                        className={`hide-question-button ${isMastered ? 'is-hidden' : ''}`}
+                        aria-pressed={isMastered}
+                        aria-label={`${isMastered ? 'Mastered' : 'Master'} question ${index + 1}`}
+                        onClick={() =>
+                          isMastered
+                            ? practiceQuestionAgain(record.question.questionKey)
+                            : masterQuestion(record.question)
+                        }
+                      >
+                        {isMastered ? (
+                          <>
+                            <Eye size={16} aria-hidden="true" /> Mastered
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff size={16} aria-hidden="true" /> Master
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {(record.question.notes ||
+                      record.question.prepositionDiagram) && (
+                      <details className="review-details">
+                        <summary>Details</summary>
+                        {record.question.prepositionDiagram && (
+                          <PrepositionDiagram className="review-preposition-diagram" />
+                        )}
+                        {record.question.notes && (
+                          <p className="review-note">{record.question.notes}</p>
+                        )}
+                      </details>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
         </section>
         <footer className="results-footer">{resultsActions}</footer>
       </main>

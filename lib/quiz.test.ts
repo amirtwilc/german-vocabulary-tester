@@ -252,7 +252,7 @@ describe('quiz generation', () => {
       'merken',
       'entscheiden',
     ]);
-    expect(vocabulary.verbs).toHaveLength(140);
+    expect(vocabulary.verbs).toHaveLength(147);
     for (const verb of vocabulary.verbs.slice(0, 86))
       expect(verb.reflexive).toBe(
         sometimes.has(verb.infinitive) ? 'sometimes' : 'no',

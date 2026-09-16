@@ -887,6 +887,98 @@ describe('quiz interface', () => {
     expect(screen.getAllByText('Correct answer')).toHaveLength(3);
   });
 
+  it('filters compact review rows while keeping original question numbers', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const questions = createQuiz(vocabulary, 3, () => 0);
+    render(<Home />);
+    setQuizLength(3);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(questions[0], true);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    answerQuestion(questions[1], false);
+    await act(async () => vi.advanceTimersByTime(2000));
+    answerQuestion(questions[2], true);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    const review = screen.getByRole('region', { name: 'Answer review' });
+    const all = screen.getByRole('button', { name: 'All questions' });
+    const wrong = screen.getByRole('button', { name: 'Only wrong' });
+    const correct = screen.getByRole('button', { name: 'Only correct' });
+    expect(all).toHaveAttribute('aria-pressed', 'true');
+    expect(within(review).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(review).getAllByText('Correct answer')).toHaveLength(3);
+    expect(
+      within(review).getAllByRole('button', { name: /^Master question/ }),
+    ).toHaveLength(3);
+
+    fireEvent.click(wrong);
+    expect(wrong).toHaveAttribute('aria-pressed', 'true');
+    expect(within(review).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(review).getByRole('listitem')).toHaveTextContent(
+      questions[1].prompt,
+    );
+    expect(within(review).getByRole('listitem')).toHaveTextContent('2.');
+
+    fireEvent.click(correct);
+    const correctRows = within(review).getAllByRole('listitem');
+    expect(correctRows).toHaveLength(2);
+    expect(correctRows[0]).toHaveTextContent('1.');
+    expect(correctRows[1]).toHaveTextContent('3.');
+    expect(correctRows[0]).toHaveTextContent(questions[0].correctAnswer);
+
+    fireEvent.click(all);
+    expect(within(review).getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('shows an empty filtered view when every answer is wrong', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const [question] = createQuiz(vocabulary, 1, () => 0);
+    render(<Home />);
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, false);
+    await act(async () => vi.advanceTimersByTime(2000));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Only correct' }));
+    const review = screen.getByRole('region', { name: 'Answer review' });
+    expect(
+      within(review).getByText('No correct answers in this quiz.'),
+    ).toBeInTheDocument();
+    expect(within(review).queryAllByRole('listitem')).toHaveLength(0);
+  });
+
+  it('keeps a preposition diagram behind expandable review details', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    window.localStorage.setItem(
+      WORD_TYPES_STORAGE_KEY,
+      JSON.stringify({ version: 1, enabledWordTypes: ['preposition'] }),
+    );
+    const [question] = createQuiz(
+      { ...vocabulary, nouns: [], verbs: [], adjectivesAndAdverbs: [] },
+      1,
+      () => 0,
+    );
+    expect(question.prepositionDiagram).toBeDefined();
+    render(<Home />);
+    await act(async () => vi.advanceTimersByTime(0));
+    setQuizLength(1);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+    answerQuestion(question, false);
+    await act(async () => vi.advanceTimersByTime(2000));
+
+    const review = screen.getByRole('region', { name: 'Answer review' });
+    const details = within(review).getByText('Details').closest('details')!;
+    expect(details).not.toHaveAttribute('open');
+    fireEvent.click(within(review).getByText('Details'));
+    expect(details).toHaveAttribute('open');
+    expect(
+      details.querySelector('.review-preposition-diagram'),
+    ).toBeInTheDocument();
+  });
+
   it('offers both result actions at the top and bottom and restarts with the same length', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);
@@ -903,6 +995,7 @@ describe('quiz interface', () => {
     };
 
     await finishQuiz();
+    fireEvent.click(screen.getByRole('button', { name: 'Only correct' }));
     const startButtons = screen.getAllByRole('button', {
       name: 'Start another quiz',
     });
@@ -920,6 +1013,9 @@ describe('quiz interface', () => {
     expect(screen.getByText(/of 3/)).toBeInTheDocument();
 
     await finishQuiz();
+    expect(
+      screen.getByRole('button', { name: 'All questions' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Back to Main Screen' })[1],
     );
@@ -941,15 +1037,13 @@ describe('quiz interface', () => {
     expect(
       screen.getByText('0 mastered questions in total'),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Master this question' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Master question 1' }));
     expect(screen.getByText('1 newly mastered this quiz')).toBeInTheDocument();
     expect(
       screen.getByText('1 mastered question in total'),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Practice this question again' }),
+      screen.getByRole('button', { name: 'Mastered question 1' }),
     );
     expect(screen.getByText('0 newly mastered this quiz')).toBeInTheDocument();
     expect(
