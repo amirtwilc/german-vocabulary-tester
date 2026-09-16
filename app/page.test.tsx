@@ -902,6 +902,9 @@ describe('quiz interface', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
     const review = screen.getByRole('region', { name: 'Answer review' });
+    expect(
+      screen.queryByText('Review each answer while it’s still fresh.'),
+    ).not.toBeInTheDocument();
     const all = screen.getByRole('button', { name: 'All questions' });
     const wrong = screen.getByRole('button', { name: 'Only wrong' });
     const correct = screen.getByRole('button', { name: 'Only correct' });
@@ -919,6 +922,7 @@ describe('quiz interface', () => {
       questions[1].prompt,
     );
     expect(within(review).getByRole('listitem')).toHaveTextContent('2.');
+    expect(within(review).getByText('Your answer')).toBeInTheDocument();
 
     fireEvent.click(correct);
     const correctRows = within(review).getAllByRole('listitem');
@@ -926,6 +930,7 @@ describe('quiz interface', () => {
     expect(correctRows[0]).toHaveTextContent('1.');
     expect(correctRows[1]).toHaveTextContent('3.');
     expect(correctRows[0]).toHaveTextContent(questions[0].correctAnswer);
+    expect(within(review).queryByText('Your answer')).not.toBeInTheDocument();
 
     fireEvent.click(all);
     expect(within(review).getAllByRole('listitem')).toHaveLength(3);

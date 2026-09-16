@@ -1717,7 +1717,6 @@ export default function Home() {
             <strong>{newlyMasteredKeys.size} newly mastered this quiz</strong>
             <span>{questionCountLabel(hiddenQuestions.length)}</span>
           </div>
-          <p>Review each answer while it’s still fresh.</p>
           {storageError && (
             <div className="import-message error" role="alert">
               <strong>
@@ -1781,10 +1780,12 @@ export default function Home() {
                     </div>
                     <div className="review-answer-row">
                       <dl>
-                        <div>
-                          <dt>Your answer</dt>
-                          <dd>{record.answer}</dd>
-                        </div>
+                        {!record.correct && (
+                          <div>
+                            <dt>Your answer</dt>
+                            <dd>{record.answer}</dd>
+                          </div>
+                        )}
                         <div>
                           <dt>Correct answer</dt>
                           <dd>
