@@ -145,6 +145,40 @@ describe('quiz interface', () => {
     expect(screen.getByText(/of 20/)).toBeInTheDocument();
   });
 
+  it('accepts a typed question count and keeps it in sync with the slider', async () => {
+    const user = userEvent.setup();
+    render(<Home />);
+    const count = screen.getByRole<HTMLInputElement>('textbox', {
+      name: 'Questions',
+    });
+    const slider = document.querySelector<HTMLInputElement>(
+      'input[type="range"]',
+    );
+
+    await user.click(count);
+    expect(count.selectionStart).toBe(0);
+    expect(count.selectionEnd).toBe(2);
+    await user.click(screen.getByRole('heading', { name: 'Wort für Wort' }));
+    expect(count).toHaveValue('20');
+
+    await user.click(count);
+    await user.keyboard('7');
+    expect(count).toHaveValue('7');
+    expect(slider).toHaveValue('7');
+
+    setQuizLength(3);
+    expect(count).toHaveValue('3');
+
+    fireEvent.change(count, { target: { value: '0' } });
+    expect(count).toHaveValue('1');
+    fireEvent.change(count, { target: { value: '7' } });
+    fireEvent.change(count, { target: { value: '' } });
+    fireEvent.blur(count);
+    expect(count).toHaveValue('7');
+    await user.click(screen.getByTestId('start-quiz'));
+    expect(screen.getByText(/of 7/)).toBeInTheDocument();
+  });
+
   it('resumes the same questions and completed answers after a refresh', async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);
@@ -890,7 +924,7 @@ describe('quiz interface', () => {
       screen.getAllByRole('button', { name: 'Back to Main Screen' })[1],
     );
     expect(screen.getByTestId('start-quiz')).toBeInTheDocument();
-    expect(screen.getByText('3', { selector: 'output' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Questions' })).toHaveValue('3');
   });
 
   it('lets the user skip mastery and change mastery from results', async () => {

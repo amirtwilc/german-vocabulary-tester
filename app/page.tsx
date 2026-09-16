@@ -251,6 +251,7 @@ export default function Home() {
   );
   const [newQuizDialogOpen, setNewQuizDialogOpen] = useState(false);
   const [amount, setAmount] = useState(defaultAmount);
+  const [amountInput, setAmountInput] = useState<string | null>(null);
   const quizAmount = maximum > 0 ? Math.max(1, Math.min(amount, maximum)) : 0;
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -1154,8 +1155,31 @@ export default function Home() {
             <>
               <div className="quiz-size-panel">
                 <div className="size-heading">
-                  <label htmlFor="quiz-size">Questions</label>
-                  <output htmlFor="quiz-size">{quizAmount}</output>
+                  <label htmlFor="quiz-size-input">Questions</label>
+                  <div className="question-count-control">
+                    <Pencil size={16} aria-hidden="true" />
+                    <input
+                      id="quiz-size-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={amountInput ?? quizAmount}
+                      onFocus={(event) => event.currentTarget.select()}
+                      onClick={(event) => event.currentTarget.select()}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (!/^\d+$/.test(value)) {
+                          setAmountInput(value);
+                          return;
+                        }
+                        setAmount(
+                          Math.max(1, Math.min(Number(value), maximum)),
+                        );
+                        setAmountInput(null);
+                      }}
+                      onBlur={() => setAmountInput(null)}
+                    />
+                  </div>
                 </div>
                 <Slider
                   id="quiz-size"
@@ -1163,11 +1187,12 @@ export default function Home() {
                   max={maximum}
                   step={1}
                   value={[quizAmount]}
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
                     setAmount(
                       Number(Array.isArray(value) ? value[0] : value) || 1,
-                    )
-                  }
+                    );
+                    setAmountInput(null);
+                  }}
                   aria-label="Number of questions"
                 />
                 <div className="range-labels">
