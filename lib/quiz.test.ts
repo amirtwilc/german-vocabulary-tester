@@ -97,6 +97,19 @@ const moveBlock = (quiz: ReturnType<typeof createQuiz>) =>
   quiz.filter((question) => question.wordId === 'move');
 
 describe('quiz generation', () => {
+  it('omits plural questions for nouns without a plural in their meaning', () => {
+    const pech = vocabulary.nouns.find((noun) => noun.id === 'pech')!;
+    const quiz = createQuiz(
+      { nouns: [pech], verbs: [], prepositions: [], adjectivesAndAdverbs: [] },
+      99,
+      () => 0,
+    );
+    expect(quiz.map((question) => question.id)).toEqual([
+      'pech-translation',
+      'pech-article',
+    ]);
+  });
+
   it('uses four distinct verbs with valid labels for reflexive and ist questions', () => {
     for (const randomValue of [0, 0.99]) {
       const first = moveBlock(
@@ -252,7 +265,7 @@ describe('quiz generation', () => {
       'merken',
       'entscheiden',
     ]);
-    expect(vocabulary.verbs).toHaveLength(147);
+    expect(vocabulary.verbs).toHaveLength(154);
     for (const verb of vocabulary.verbs.slice(0, 86))
       expect(verb.reflexive).toBe(
         sometimes.has(verb.infinitive) ? 'sometimes' : 'no',

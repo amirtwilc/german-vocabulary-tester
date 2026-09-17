@@ -218,16 +218,20 @@ const nounBlock = (
     correctAnswer: noun.article,
     options: shuffle(['der', 'die', 'das'], random),
   },
-  {
-    id: `${noun.id}-plural`,
-    wordId: noun.id,
-    wordType: 'noun',
-    word: noun.german,
-    eyebrow: 'Noun · plural',
-    prompt: `Write the plural of “${noun.german}”.`,
-    mode: 'text',
-    correctAnswer: noun.plural,
-  },
+  ...(noun.plural
+    ? [
+        {
+          id: `${noun.id}-plural`,
+          wordId: noun.id,
+          wordType: 'noun' as const,
+          word: noun.german,
+          eyebrow: 'Noun · plural',
+          prompt: `Write the plural of “${noun.german}”.`,
+          mode: 'text' as const,
+          correctAnswer: noun.plural,
+        },
+      ]
+    : []),
 ];
 
 const verbCandidates = (

@@ -137,6 +137,24 @@ describe('vocabulary CSV collections', () => {
     expect(roundTrip.vocabulary).toEqual(imported);
   });
 
+  it('round-trips a noun without a plural', () => {
+    const csv = [
+      CSV_COLUMNS.join(','),
+      csvRow({
+        type: 'noun',
+        german: 'Pech',
+        english: 'bad luck',
+        article: 'das',
+      }),
+    ].join('\n');
+    const imported = parseVocabularyCsv(csv);
+    expect(imported.errors).toEqual([]);
+    expect(imported.vocabulary?.nouns[0].plural).toBeUndefined();
+    const roundTrip = parseVocabularyCsv(vocabularyToCsv(imported.vocabulary!));
+    expect(roundTrip.errors).toEqual([]);
+    expect(roundTrip.vocabulary).toEqual(imported.vocabulary);
+  });
+
   it('accepts older CSVs without reflexive and validates new values', () => {
     const oldColumns = CSV_COLUMNS.filter((column) => column !== 'reflexive');
     const oldCsv = [

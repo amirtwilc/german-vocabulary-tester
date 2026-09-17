@@ -120,7 +120,8 @@ const isForms = (value: unknown) =>
     ));
 const isNoun = (value: unknown): value is Noun =>
   isRecord(value) &&
-  hasStrings(value, ['id', 'german', 'english', 'plural']) &&
+  hasStrings(value, ['id', 'german', 'english']) &&
+  hasOptionalString(value, 'plural') &&
   ['der', 'die', 'das'].includes(String(value.article));
 const isVerb = (value: unknown): value is Verb =>
   isRecord(value) &&
@@ -339,8 +340,8 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
     const id = makeId(german, rowIndex);
 
     if (type === 'noun') {
-      if (!values.english || !values.plural) {
-        errors.push(`Row ${line}: nouns require english and plural.`);
+      if (!values.english) {
+        errors.push(`Row ${line}: nouns require english.`);
         return;
       }
       if (!['der', 'die', 'das'].includes(normalize(values.article))) {
@@ -351,7 +352,7 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
         id,
         german,
         english: values.english,
-        plural: values.plural,
+        plural: values.plural || undefined,
         article: normalize(values.article) as Article,
       });
       return;
