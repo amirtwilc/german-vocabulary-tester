@@ -455,6 +455,13 @@ export const vocabulary = {
       plural: 'Währungen',
       article: 'die',
     },
+    {
+      id: 'konto',
+      german: 'Konto',
+      english: 'account',
+      plural: 'Konten',
+      article: 'das',
+    },
   ],
   verbs: [
     {
@@ -3180,5 +3187,11 @@ export const vocabulary = {
       english: 'besides / moreover',
     },
     { id: 'wahr', kind: 'adjective', german: 'wahr', english: 'true' },
+    {
+      id: 'egal',
+      kind: 'adjective',
+      german: 'egal',
+      english: 'irrelevant / all the same',
+    },
   ],
 } as const satisfies Vocabulary;
