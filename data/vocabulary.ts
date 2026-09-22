@@ -3531,12 +3531,6 @@ export const vocabulary = {
       comparative: 'beliebter',
       superlative: 'am beliebtesten',
     },
-    {
-      id: 'publik',
-      kind: 'adjective',
-      german: 'publik',
-      english: 'public / known',
-    },
     { id: 'gueltig', kind: 'adjective', german: 'gültig', english: 'valid' },
     {
       id: 'dringend',
