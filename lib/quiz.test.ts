@@ -108,6 +108,27 @@ describe('quiz generation', () => {
       'pech-translation',
       'pech-article',
     ]);
+    expect(quiz[0].prompt).toBe('What does “Pech” mean?');
+    expect(quiz[1].prompt).toBe('Which article belongs to “Pech” (bad luck)?');
+  });
+
+  it('shows English meanings on noun and verb follow-up questions', () => {
+    const quiz = createQuiz(source, 99, () => 0.5);
+    expect(
+      quiz.find((question) => question.id === 'book-article')?.prompt,
+    ).toBe('Which article belongs to “Buch” (book)?');
+    expect(quiz.find((question) => question.id === 'book-plural')?.prompt).toBe(
+      'Write the plural of “Buch” (book).',
+    );
+    expect(
+      quiz.find((question) => question.id === 'read-present-ich')?.prompt,
+    ).toBe('Conjugate “lesen” (to read) for ich.');
+    expect(quiz.find((question) => question.id === 'read-case')?.prompt).toBe(
+      'Which case does “lesen” (to read) take?',
+    );
+    expect(
+      quiz.find((question) => question.id === 'read-translation')?.prompt,
+    ).toBe('What does “lesen” mean?');
   });
 
   it('uses four distinct verbs with valid labels for reflexive and ist questions', () => {
@@ -241,6 +262,24 @@ describe('quiz generation', () => {
     expect(withBothMastered).toHaveLength(4);
   });
 
+  it('keeps English meanings when the translation question is mastered', () => {
+    const initial = createQuiz(source, 99, () => 0.5);
+    const translationKey = initial.find(
+      (question) => question.id === 'read-translation',
+    )!.questionKey;
+    const readQuestions = createQuiz(
+      source,
+      99,
+      () => 0.5,
+      new Set([translationKey]),
+    ).filter((question) => question.wordId === 'read');
+
+    expect(readQuestions).toHaveLength(3);
+    expect(
+      readQuestions.every((question) => question.prompt.includes('(to read)')),
+    ).toBe(true);
+  });
+
   it('skips special questions without three valid distractors', () => {
     const scarce = {
       ...specialSource,
@@ -347,6 +386,11 @@ describe('quiz generation', () => {
     expect(
       quiz.slice(1).every((question) => question.id.includes('-preterite-')),
     ).toBe(true);
+    expect(
+      quiz
+        .slice(1)
+        .every((question) => question.prompt.includes('“können” (can)')),
+    ).toBe(true);
   });
 
   it('adds Präteritum only to the requested modal verbs', () => {
@@ -397,7 +441,7 @@ describe('quiz generation', () => {
     ).toBe(true);
     const mit = quiz.find((question) => question.id === 'mit-category')!;
     expect(mit.correctAnswer).toBe('mit');
-    expect(mit.prompt).toContain('Dative');
+    expect(mit.prompt).toBe('What is the missing word that takes Dative?');
     expect(mit.options).toHaveLength(3);
     expect(mit.prepositionDiagram?.hiddenWords).toEqual(
       expect.arrayContaining(mit.options!),
@@ -513,6 +557,12 @@ describe('quiz generation', () => {
       correctAnswer: 'besten',
       wordType: 'adjective',
     });
+    expect(
+      quiz.find((question) => question.id === 'good-comparative')?.prompt,
+    ).toBe('Write the comparative form of “gut” (good).');
+    expect(
+      quiz.find((question) => question.id === 'good-superlative')?.prompt,
+    ).toBe('Write the superlative form of “gut” (good).');
   });
 
   it('does not create present-tense questions for wir or sie / Sie', () => {

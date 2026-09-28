@@ -250,6 +250,7 @@ export default function Home() {
   const [savedSession, setSavedSession] = useState<SavedQuizSession | null>(
     null,
   );
+  const [resumeDetailsOpen, setResumeDetailsOpen] = useState(false);
   const [newQuizDialogOpen, setNewQuizDialogOpen] = useState(false);
   const [amount, setAmount] = useState(defaultAmount);
   const [amountInput, setAmountInput] = useState<string | null>(null);
@@ -1100,10 +1101,15 @@ export default function Home() {
     const saved = saveQuizProgress(session);
     if (!saved.ok) setStorageError(storageErrorMessage(saved.reason));
     setSavedSession(session);
+    setResumeDetailsOpen(false);
     setScreen('setup');
   };
 
   if (screen === 'setup') {
+    const savedCorrectCount =
+      savedSession?.answers.filter((record) => record.correct).length ?? 0;
+    const savedWrongCount =
+      (savedSession?.answers.length ?? 0) - savedCorrectCount;
     return (
       <main className="app-shell">
         <section className="setup-card" aria-labelledby="page-title">
@@ -1122,15 +1128,52 @@ export default function Home() {
             </div>
           )}
           {savedSession && (
-            <div className="quiz-size-panel">
-              <p>
-                Quiz in progress: question {savedSession.questionIndex + 1} of{' '}
-                {savedSession.questions.length}
-              </p>
-              <Button onClick={resumeQuiz}>
-                Resume quiz <ArrowRight size={18} />
-              </Button>
-            </div>
+            <Collapsible
+              className="resume-panel"
+              open={resumeDetailsOpen}
+              onOpenChange={setResumeDetailsOpen}
+            >
+              <div className="resume-summary">
+                <p>
+                  Quiz in progress: question {savedSession.questionIndex + 1} of{' '}
+                  {savedSession.questions.length}
+                </p>
+                <Button onClick={resumeQuiz}>
+                  Resume quiz <ArrowRight size={18} />
+                </Button>
+              </div>
+              <CollapsibleTrigger className="resume-details-toggle">
+                <span>
+                  {resumeDetailsOpen
+                    ? 'Hide quiz details'
+                    : 'View quiz details'}
+                </span>
+                <ChevronDown
+                  className={resumeDetailsOpen ? 'open' : ''}
+                  size={18}
+                  aria-hidden="true"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <section
+                  className="resume-details"
+                  aria-label="Current quiz details"
+                >
+                  <div className="resume-stat correct">
+                    <span>Correct</span>
+                    <strong>{savedCorrectCount}</strong>
+                  </div>
+                  <div className="resume-stat wrong">
+                    <span>Wrong</span>
+                    <strong>{savedWrongCount}</strong>
+                  </div>
+                  <div className="resume-stat mastered">
+                    <span>Newly mastered</span>
+                    <strong>{savedSession.newlyMasteredKeys.length}</strong>
+                  </div>
+                </section>
+              </CollapsibleContent>
+            </Collapsible>
           )}
           <AlertDialog
             open={newQuizDialogOpen}

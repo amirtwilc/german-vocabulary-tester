@@ -246,6 +246,46 @@ describe('quiz interface', () => {
     );
   });
 
+  it('reveals saved quiz results only when its details are expanded', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const questions = createQuiz(vocabulary, 3, () => 0);
+    render(<Home />);
+    setQuizLength(3);
+    fireEvent.click(screen.getByTestId('start-quiz'));
+
+    answerQuestion(questions[0], true);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Master this question' }),
+    );
+    await act(async () => vi.advanceTimersByTime(450));
+    answerQuestion(questions[1], false);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Back to main screen' }),
+    );
+
+    expect(
+      screen.queryByRole('region', { name: 'Current quiz details' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View quiz details' }));
+
+    const details = screen.getByRole('region', {
+      name: 'Current quiz details',
+    });
+    expect(within(details).getByText('Correct').nextSibling).toHaveTextContent(
+      '1',
+    );
+    expect(within(details).getByText('Wrong').nextSibling).toHaveTextContent(
+      '1',
+    );
+    expect(
+      within(details).getByText('Newly mastered').nextSibling,
+    ).toHaveTextContent('1');
+    expect(
+      screen.getByRole('button', { name: 'Hide quiz details' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('asks before replacing a saved quiz', async () => {
     const user = userEvent.setup();
     const firstPage = render(<Home />);

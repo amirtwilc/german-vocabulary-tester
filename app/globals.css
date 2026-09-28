@@ -619,6 +619,90 @@ p {
   font-size: 0.78rem;
   line-height: 1.45;
 }
+.resume-panel {
+  margin-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid #d8e2ea;
+  border-radius: 18px;
+  background: #f6f9fb;
+}
+.resume-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+}
+.resume-summary p {
+  margin: 0;
+  color: #334b61;
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+.resume-summary button {
+  flex: none;
+}
+.resume-details-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 20px;
+  border: 0;
+  border-top: 1px solid #d8e2ea;
+  color: #50667a;
+  background: #edf3f7;
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.resume-details-toggle:hover {
+  color: #193b5a;
+  background: #e8f0f5;
+}
+.resume-details-toggle svg {
+  transition: transform 0.18s ease;
+}
+.resume-details-toggle svg.open {
+  transform: rotate(180deg);
+}
+.resume-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid #d8e2ea;
+}
+.resume-stat {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff;
+  text-align: center;
+}
+.resume-stat span {
+  display: block;
+  color: #718092;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.resume-stat strong {
+  display: block;
+  margin-top: 3px;
+  color: #193b5a;
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.resume-stat.correct strong {
+  color: #26734a;
+}
+.resume-stat.wrong strong {
+  color: #a33d3d;
+}
+.resume-stat.mastered strong {
+  color: #9a6a16;
+}
 .quiz-size-panel {
   padding: 20px;
   border: 1px solid #d8e2ea;
@@ -1377,6 +1461,23 @@ p {
   }
   .setup-card .brand-mark {
     margin-bottom: 34px;
+  }
+  .resume-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .resume-summary button {
+    width: 100%;
+  }
+  .resume-details {
+    gap: 7px;
+    padding-inline: 12px;
+  }
+  .resume-stat {
+    padding: 10px 5px;
+  }
+  .resume-stat span {
+    font-size: 0.68rem;
   }
   .collections-panel,
   .hidden-questions-panel {

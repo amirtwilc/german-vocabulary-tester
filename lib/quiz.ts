@@ -52,6 +52,8 @@ const normalizeQuestionWord = (word: string) =>
   word.trim().toLocaleLowerCase('de-DE').normalize('NFC');
 const bareVerbInfinitive = (infinitive: string) =>
   infinitive.trim().replace(/^sich\s+/i, '');
+const wordWithEnglish = (word: string, english: string) =>
+  `“${word}” (${english})`;
 
 const questionFacet = (id: string) => {
   const person = id.match(
@@ -213,7 +215,7 @@ const nounBlock = (
     wordType: 'noun',
     word: noun.german,
     eyebrow: 'Noun · article',
-    prompt: `Which article belongs to “${noun.german}”?`,
+    prompt: `Which article belongs to ${wordWithEnglish(noun.german, noun.english)}?`,
     mode: 'choice',
     correctAnswer: noun.article,
     options: shuffle(['der', 'die', 'das'], random),
@@ -226,7 +228,7 @@ const nounBlock = (
           wordType: 'noun' as const,
           word: noun.german,
           eyebrow: 'Noun · plural',
-          prompt: `Write the plural of “${noun.german}”.`,
+          prompt: `Write the plural of ${wordWithEnglish(noun.german, noun.english)}.`,
           mode: 'text' as const,
           correctAnswer: noun.plural,
         },
@@ -251,7 +253,7 @@ const verbCandidates = (
       wordType: 'verb',
       word: verb.infinitive,
       eyebrow: 'Verb · present tense',
-      prompt: `Conjugate “${verb.infinitive}” for ${people[person]}.`,
+      prompt: `Conjugate ${wordWithEnglish(verb.infinitive, verb.english)} for ${people[person]}.`,
       mode: 'text',
       correctAnswer: answer,
       notes: verb.notes,
@@ -267,7 +269,7 @@ const verbCandidates = (
       wordType: 'verb',
       word: verb.infinitive,
       eyebrow: 'Verb · Präteritum',
-      prompt: `Conjugate “${verb.infinitive}” in Präteritum for ${people[person]}.`,
+      prompt: `Conjugate ${wordWithEnglish(verb.infinitive, verb.english)} in Präteritum for ${people[person]}.`,
       mode: 'text',
       correctAnswer: answer,
       notes: verb.notes,
@@ -280,7 +282,7 @@ const verbCandidates = (
       wordType: 'verb',
       word: verb.infinitive,
       eyebrow: 'Verb · past participle',
-      prompt: `Write the past participle of “${verb.infinitive}” (${verb.english}).`,
+      prompt: `Write the past participle of ${wordWithEnglish(verb.infinitive, verb.english)}.`,
       mode: 'text',
       correctAnswer: verb.pastParticiple,
       notes: verb.notes,
@@ -292,7 +294,7 @@ const verbCandidates = (
       wordType: 'verb',
       word: verb.infinitive,
       eyebrow: 'Verb · grammatical case',
-      prompt: `Which case does “${verb.infinitive}” take?`,
+      prompt: `Which case does ${wordWithEnglish(verb.infinitive, verb.english)} take?`,
       mode: 'choice',
       correctAnswer: verb.case,
       options: shuffle(['Akkusativ', 'Dativ', 'Akkusativ + Dativ'], random),
@@ -334,7 +336,7 @@ const adjectiveAdverbBlock = (
             wordType: item.kind,
             word: item.german,
             eyebrow: `${label} · comparative`,
-            prompt: `Write the comparative form of “${item.german}”.`,
+            prompt: `Write the comparative form of ${wordWithEnglish(item.german, item.english)}.`,
             mode: 'text' as const,
             correctAnswer: item.comparative,
           },
@@ -348,7 +350,7 @@ const adjectiveAdverbBlock = (
             wordType: item.kind,
             word: item.german,
             eyebrow: `${label} · superlative`,
-            prompt: `Write the superlative form of “${item.german}”.`,
+            prompt: `Write the superlative form of ${wordWithEnglish(item.german, item.english)}.`,
             mode: 'text' as const,
             answerPrefix: 'am',
             correctAnswer: superlativeAnswer,
