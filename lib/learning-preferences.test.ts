@@ -44,6 +44,25 @@ describe('hidden-question preferences', () => {
     );
   });
 
+  it('hides obsolete reflexive classification mastery records', () => {
+    const record = hiddenQuestionFrom(question);
+    window.localStorage.setItem(
+      HIDDEN_QUESTIONS_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        questions: [
+          record,
+          {
+            ...record,
+            key: 'v1:verb:beeilen:reflexive',
+            prompt: 'Which verb is always reflexive?',
+          },
+        ],
+      }),
+    );
+    expect(loadHiddenQuestions()).toEqual([record]);
+  });
+
   it('ignores malformed or unsupported stored data', () => {
     window.localStorage.setItem(
       HIDDEN_QUESTIONS_STORAGE_KEY,

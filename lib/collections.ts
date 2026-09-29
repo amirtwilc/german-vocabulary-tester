@@ -5,7 +5,6 @@ import type {
   Noun,
   Preposition,
   PresentPerson,
-  Reflexive,
   Verb,
   VerbCase,
   Vocabulary,
@@ -46,6 +45,9 @@ export const CSV_COLUMNS = [
   'type',
   'german',
   'english',
+  'translation_german',
+  'alternate_german',
+  'alternate_english',
   'article',
   'plural',
   'comparative',
@@ -64,12 +66,16 @@ export const CSV_COLUMNS = [
   'preterite_sie_sie',
   'past_participle',
   'auxiliary',
-  'reflexive',
   'notes',
 ] as const;
 
 type CsvColumn = (typeof CSV_COLUMNS)[number];
-type CsvRecord = Record<CsvColumn, string>;
+type CsvRecord = Record<CsvColumn, string> & { reflexive?: string };
+const optionalCsvColumns = new Set<CsvColumn>([
+  'translation_german',
+  'alternate_german',
+  'alternate_english',
+]);
 
 const preteritePersonColumns: Record<PresentPerson, string> = {
   ich: 'ich',
@@ -118,6 +124,9 @@ const isForms = (value: unknown) =>
         ['ich', 'du', 'erSieEs', 'wir', 'ihr', 'sieSie'].includes(person) &&
         typeof form === 'string',
     ));
+const isAlternateTranslation = (value: unknown) =>
+  value === undefined ||
+  (isRecord(value) && hasStrings(value, ['german', 'english']));
 const isNoun = (value: unknown): value is Noun =>
   isRecord(value) &&
   hasStrings(value, ['id', 'german', 'english']) &&
@@ -126,15 +135,14 @@ const isNoun = (value: unknown): value is Noun =>
 const isVerb = (value: unknown): value is Verb =>
   isRecord(value) &&
   hasStrings(value, ['id', 'infinitive', 'english']) &&
+  hasOptionalString(value, 'translationGerman') &&
+  isAlternateTranslation(value.alternateTranslation) &&
   isForms(value.present) &&
   isForms(value.preterite) &&
   ['pastParticiple', 'notes'].every((key) => hasOptionalString(value, key)) &&
   (value.auxiliary === undefined ||
     (typeof value.auxiliary === 'string' &&
       ['hat', 'ist'].includes(value.auxiliary))) &&
-  (value.reflexive === undefined ||
-    (typeof value.reflexive === 'string' &&
-      ['', 'no', 'always', 'sometimes'].includes(value.reflexive))) &&
   (value.case === undefined ||
     (typeof value.case === 'string' &&
       ['Akkusativ', 'Dativ', 'Akkusativ + Dativ'].includes(value.case)));
@@ -150,6 +158,12 @@ const isAdjectiveAdverb = (value: unknown): value is AdjectiveAdverb =>
   ['adjective', 'adverb'].includes(String(value.kind)) &&
   hasOptionalString(value, 'comparative') &&
   hasOptionalString(value, 'superlative');
+const withoutLegacyReflexive = (verb: Verb): Verb => {
+  const { reflexive: _reflexive, ...current } = verb as Verb & {
+    reflexive?: unknown;
+  };
+  return current;
+};
 
 const parseStoredCollection = (value: unknown): VocabularyCollection | null => {
   if (
@@ -178,7 +192,7 @@ const parseStoredCollection = (value: unknown): VocabularyCollection | null => {
     updatedAt: value.updatedAt as string,
     vocabulary: {
       nouns: storedVocabulary.nouns,
-      verbs: storedVocabulary.verbs,
+      verbs: storedVocabulary.verbs.map(withoutLegacyReflexive),
       prepositions: storedVocabulary.prepositions,
       adjectivesAndAdverbs: modifiers,
     },
@@ -280,10 +294,11 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
       wordCount: 0,
     };
   const missing = CSV_COLUMNS.filter(
-    (column) => column !== 'reflexive' && !headers.includes(column),
+    (column) => !optionalCsvColumns.has(column) && !headers.includes(column),
   );
   const unknown = headers.filter(
-    (header) => !CSV_COLUMNS.includes(header as CsvColumn),
+    (header) =>
+      header !== 'reflexive' && !CSV_COLUMNS.includes(header as CsvColumn),
   );
   if (missing.length || unknown.length) {
     const errors = [
@@ -369,11 +384,22 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
         errors.push(`Row ${line}: auxiliary must be hat or ist.`);
         return;
       }
+      const alternateGerman = values.alternate_german?.trim() ?? '';
+      const alternateEnglish = values.alternate_english?.trim() ?? '';
+      if (Boolean(alternateGerman) !== Boolean(alternateEnglish)) {
+        errors.push(
+          `Row ${line}: alternate_german and alternate_english must both be provided.`,
+        );
+        return;
+      }
+      const translationGerman = values.translation_german?.trim() ?? '';
       if (
-        values.reflexive &&
-        !['no', 'always', 'sometimes'].includes(normalize(values.reflexive))
+        alternateGerman &&
+        normalize(alternateGerman) === normalize(translationGerman || german)
       ) {
-        errors.push(`Row ${line}: reflexive must be no, always, or sometimes.`);
+        errors.push(
+          `Row ${line}: alternate_german must differ from the primary German translation form.`,
+        );
         return;
       }
       const verbCase = values.case.trim();
@@ -390,12 +416,14 @@ export const parseVocabularyCsv = (text: string): CsvImportResult => {
         id,
         infinitive: german,
         english: values.english,
+        translationGerman: translationGerman || undefined,
+        alternateTranslation: alternateGerman
+          ? { german: alternateGerman, english: alternateEnglish }
+          : undefined,
         present: pickForms(values, 'present'),
         preterite: pickForms(values, 'preterite'),
         pastParticiple: values.past_participle || undefined,
         auxiliary: (normalize(values.auxiliary) as Auxiliary) || undefined,
-        reflexive:
-          (normalize(values.reflexive ?? '') as Reflexive) || undefined,
         case: (verbCase as VerbCase) || undefined,
         notes: values.notes || undefined,
       });
@@ -473,9 +501,11 @@ export const vocabularyToCsv = (source: Vocabulary) => {
       type: 'verb',
       german: verb.infinitive,
       english: verb.english,
+      translation_german: verb.translationGerman,
+      alternate_german: verb.alternateTranslation?.german,
+      alternate_english: verb.alternateTranslation?.english,
       past_participle: verb.pastParticiple,
       auxiliary: verb.auxiliary,
-      reflexive: verb.reflexive,
       case: verb.case,
       notes: verb.notes,
     };
@@ -535,7 +565,6 @@ export const vocabularyTemplateCsv = () =>
         present: { ich: 'lerne', du: 'lernst', erSieEs: 'lernt', ihr: 'lernt' },
         pastParticiple: 'gelernt',
         auxiliary: 'hat',
-        reflexive: 'no',
         case: 'Akkusativ',
         notes: 'Replace or remove these example rows.',
       },

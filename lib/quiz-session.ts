@@ -86,6 +86,7 @@ const validQuestions = (questions: unknown): questions is QuizQuestion[] =>
       question &&
       typeof question.id === 'string' &&
       typeof question.questionKey === 'string' &&
+      !question.questionKey.endsWith(':reflexive') &&
       typeof question.prompt === 'string' &&
       typeof question.correctAnswer === 'string' &&
       (question.mode === 'text' ||

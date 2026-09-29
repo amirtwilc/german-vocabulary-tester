@@ -57,6 +57,7 @@ export const loadHiddenQuestions = (): HiddenQuestion[] => {
     const unique = new Map(
       stored.questions
         .filter(isHiddenQuestion)
+        .filter((question) => !question.key.endsWith(':reflexive'))
         .map((question) => [question.key, question]),
     );
     return [...unique.values()];

@@ -12,7 +12,7 @@ import {
   SELECTED_COLLECTIONS_STORAGE_KEY,
   vocabularyToCsv,
 } from '@/lib/collections';
-import type { Vocabulary } from '@/data/vocabulary';
+import { vocabulary, type Vocabulary } from '@/data/vocabulary';
 
 const csvRow = (values: Record<string, string>) =>
   CSV_COLUMNS.map((column) => {
@@ -40,7 +40,9 @@ const validCsv = [
     present_ihr: 'lernt',
     past_participle: 'gelernt',
     auxiliary: 'hat',
-    reflexive: 'sometimes',
+    translation_german: 'sich lernen',
+    alternate_german: 'etwas erlernen',
+    alternate_english: 'to acquire knowledge of something',
     notes: 'A useful, regular verb',
   }),
   csvRow({ type: 'preposition', german: 'mit', usage: 'fixed', case: 'Dativ' }),
@@ -104,6 +106,11 @@ describe('vocabulary CSV collections', () => {
     });
     expect(result.vocabulary?.verbs[0]).toMatchObject({
       infinitive: 'lernen',
+      translationGerman: 'sich lernen',
+      alternateTranslation: {
+        german: 'etwas erlernen',
+        english: 'to acquire knowledge of something',
+      },
       present: { ich: 'lerne' },
       notes: 'A useful, regular verb',
     });
@@ -132,9 +139,32 @@ describe('vocabulary CSV collections', () => {
 
   it('round-trips exported vocabulary without losing fields', () => {
     const imported = parseVocabularyCsv(validCsv).vocabulary!;
-    const roundTrip = parseVocabularyCsv(vocabularyToCsv(imported));
+    const exported = vocabularyToCsv(imported);
+    expect(exported.split(/\r?\n/, 1)[0].split(',')).not.toContain('reflexive');
+    const roundTrip = parseVocabularyCsv(exported);
     expect(roundTrip.errors).toEqual([]);
     expect(roundTrip.vocabulary).toEqual(imported);
+  });
+
+  it('round-trips default translation forms through CSV', () => {
+    const exported = vocabularyToCsv(vocabulary);
+    expect(exported.split(/\r?\n/, 1)[0].split(',')).not.toContain('reflexive');
+    const roundTrip = parseVocabularyCsv(exported);
+    expect(roundTrip.errors).toEqual([]);
+    expect(
+      roundTrip.vocabulary?.verbs.find((verb) => verb.id.startsWith('beeilen')),
+    ).toMatchObject({ translationGerman: 'sich beeilen' });
+    expect(
+      roundTrip.vocabulary?.verbs.find((verb) =>
+        verb.id.startsWith('erinnern'),
+      ),
+    ).toMatchObject({
+      english: 'to remind',
+      alternateTranslation: {
+        german: 'sich erinnern',
+        english: 'to remember',
+      },
+    });
   });
 
   it('round-trips a noun without a plural', () => {
@@ -155,8 +185,15 @@ describe('vocabulary CSV collections', () => {
     expect(roundTrip.vocabulary).toEqual(imported.vocabulary);
   });
 
-  it('accepts older CSVs without reflexive and validates new values', () => {
-    const oldColumns = CSV_COLUMNS.filter((column) => column !== 'reflexive');
+  it('accepts older CSVs and ignores a legacy reflexive column', () => {
+    const oldColumns = CSV_COLUMNS.filter(
+      (column) =>
+        ![
+          'translation_german',
+          'alternate_german',
+          'alternate_english',
+        ].includes(column),
+    );
     const oldCsv = [
       oldColumns.join(','),
       oldColumns
@@ -168,24 +205,59 @@ describe('vocabulary CSV collections', () => {
         )
         .join(','),
     ].join('\n');
+    expect(parseVocabularyCsv(oldCsv).errors).toEqual([]);
+
+    const legacyHeaders = [...oldColumns, 'reflexive'];
+    const legacyCsv = [
+      legacyHeaders.join(','),
+      legacyHeaders
+        .map(
+          (column) =>
+            ({
+              type: 'verb',
+              german: 'lernen',
+              english: 'to learn',
+              reflexive: 'sometimes',
+            })[column as 'type' | 'german' | 'english' | 'reflexive'] ?? '',
+        )
+        .join(','),
+    ].join('\n');
+    expect(parseVocabularyCsv(legacyCsv).errors).toEqual([]);
     expect(
-      parseVocabularyCsv(oldCsv).vocabulary?.verbs[0].reflexive,
-    ).toBeUndefined();
-    const invalid = [
+      parseVocabularyCsv(legacyCsv).vocabulary?.verbs[0],
+    ).not.toHaveProperty('reflexive');
+  });
+
+  it('validates alternate translation pairs and distinct German forms', () => {
+    const missingEnglish = [
       CSV_COLUMNS.join(','),
       csvRow({
         type: 'verb',
-        german: 'lernen',
-        english: 'to learn',
-        reflexive: 'occasionally',
+        german: 'erinnern',
+        english: 'to remind',
+        alternate_german: 'sich erinnern',
       }),
     ].join('\n');
-    expect(parseVocabularyCsv(invalid).errors).toContain(
-      'Row 2: reflexive must be no, always, or sometimes.',
+    expect(parseVocabularyCsv(missingEnglish).errors).toContain(
+      'Row 2: alternate_german and alternate_english must both be provided.',
+    );
+
+    const duplicateGerman = [
+      CSV_COLUMNS.join(','),
+      csvRow({
+        type: 'verb',
+        german: 'erinnern',
+        english: 'to remind',
+        alternate_german: 'Erinnern',
+        alternate_english: 'to remember',
+      }),
+    ].join('\n');
+    expect(parseVocabularyCsv(duplicateGerman).errors).toContain(
+      'Row 2: alternate_german must differ from the primary German translation form.',
     );
   });
 
-  it('loads older stored verbs and rejects invalid reflexive values', () => {
+  it('loads older stored verbs and ignores legacy reflexive properties', () => {
     const collection = {
       id: 'old',
       name: 'Old',
@@ -202,7 +274,9 @@ describe('vocabulary CSV collections', () => {
       COLLECTIONS_STORAGE_KEY,
       JSON.stringify([collection]),
     );
-    expect(loadCollections()).toHaveLength(1);
+    const loaded = loadCollections();
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0].vocabulary.verbs[0]).not.toHaveProperty('reflexive');
     collection.vocabulary.verbs[0] = {
       ...collection.vocabulary.verbs[0],
       reflexive: 'invalid',
@@ -211,7 +285,9 @@ describe('vocabulary CSV collections', () => {
       COLLECTIONS_STORAGE_KEY,
       JSON.stringify([collection]),
     );
-    expect(loadCollections()).toEqual([]);
+    const migrated = loadCollections();
+    expect(migrated).toHaveLength(1);
+    expect(migrated[0].vocabulary.verbs[0]).not.toHaveProperty('reflexive');
   });
 
   it('skips duplicate words across selected collections, case-insensitively', () => {

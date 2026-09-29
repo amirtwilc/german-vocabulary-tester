@@ -1,7 +1,6 @@
 /** The editable vocabulary pool. Add or remove entries here, then redeploy. */
 export type Article = 'der' | 'die' | 'das';
 export type Auxiliary = 'hat' | 'ist';
-export type Reflexive = 'no' | 'always' | 'sometimes';
 export type VerbCase = 'Akkusativ' | 'Dativ' | 'Akkusativ + Dativ';
 export type PresentPerson = 'ich' | 'du' | 'erSieEs' | 'wir' | 'ihr' | 'sieSie';
 export type PrepositionCase = 'Akkusativ' | 'Dativ';
@@ -23,12 +22,18 @@ export interface Verb {
   id: string;
   infinitive: string;
   english: string;
+  /** Optional German form shown only for the primary translation question. */
+  translationGerman?: string;
+  /** Optional second meaning question attached to the same grammatical verb. */
+  alternateTranslation?: {
+    german: string;
+    english: string;
+  };
   present?: Partial<Record<PresentPerson, string>>;
   /** Optional simple-past forms. Every provided person can become a written Präteritum question. */
   preterite?: Partial<Record<PresentPerson, string>>;
   pastParticiple?: string;
   auxiliary?: Auxiliary;
-  reflexive?: Reflexive | '';
   case?: VerbCase;
   notes?: string;
 }
@@ -628,7 +633,6 @@ export const vocabulary = {
     {
       id: 'fahren',
       infinitive: 'fahren',
-      reflexive: 'no',
       english: 'to drive / travel',
       present: { ich: 'fahre', du: 'fährst', erSieEs: 'fährt', ihr: 'fahrt' },
       pastParticiple: 'gefahren',
@@ -638,7 +642,6 @@ export const vocabulary = {
     {
       id: 'danken',
       infinitive: 'danken',
-      reflexive: 'no',
       english: 'to thank',
       present: { ich: 'danke', du: 'dankst', erSieEs: 'dankt' },
       pastParticiple: 'gedankt',
@@ -648,7 +651,6 @@ export const vocabulary = {
     {
       id: 'bezahlen',
       infinitive: 'bezahlen',
-      reflexive: 'no',
       english: 'to pay',
       present: { ich: 'bezahle', du: 'bezahlst', erSieEs: 'bezahlt' },
       pastParticiple: 'bezahlt',
@@ -658,7 +660,6 @@ export const vocabulary = {
     {
       id: 'essen',
       infinitive: 'essen',
-      reflexive: 'no',
       english: 'to eat',
       present: { ich: 'esse', du: 'isst', erSieEs: 'isst' },
       pastParticiple: 'gegessen',
@@ -668,7 +669,6 @@ export const vocabulary = {
     {
       id: 'schlafen',
       infinitive: 'schlafen',
-      reflexive: 'no',
       english: 'to sleep',
       present: { ich: 'schlafe', du: 'schläfst', erSieEs: 'schläft' },
       pastParticiple: 'geschlafen',
@@ -677,7 +677,6 @@ export const vocabulary = {
     {
       id: 'helfen',
       infinitive: 'helfen',
-      reflexive: 'no',
       english: 'to help',
       present: { ich: 'helfe', du: 'hilfst', erSieEs: 'hilft' },
       pastParticiple: 'geholfen',
@@ -687,7 +686,6 @@ export const vocabulary = {
     {
       id: 'lesen',
       infinitive: 'lesen',
-      reflexive: 'no',
       english: 'to read',
       present: { ich: 'lese', du: 'liest', erSieEs: 'liest' },
       pastParticiple: 'gelesen',
@@ -697,7 +695,6 @@ export const vocabulary = {
     {
       id: 'sprechen',
       infinitive: 'sprechen',
-      reflexive: 'no',
       english: 'to speak',
       present: { ich: 'spreche', du: 'sprichst', erSieEs: 'spricht' },
       pastParticiple: 'gesprochen',
@@ -706,7 +703,6 @@ export const vocabulary = {
     {
       id: 'wollen',
       infinitive: 'wollen',
-      reflexive: 'no',
       english: 'to want',
       present: { ich: 'will', du: 'willst', erSieEs: 'will', ihr: 'wollt' },
       preterite: {
@@ -721,7 +717,6 @@ export const vocabulary = {
     {
       id: 'muessen',
       infinitive: 'müssen',
-      reflexive: 'no',
       english: 'to have to / must',
       present: { ich: 'muss', du: 'musst', erSieEs: 'muss', ihr: 'müsst' },
       preterite: {
@@ -736,7 +731,6 @@ export const vocabulary = {
     {
       id: 'koennen',
       infinitive: 'können',
-      reflexive: 'no',
       english: 'to be able to / can',
       present: { ich: 'kann', du: 'kannst', erSieEs: 'kann', ihr: 'könnt' },
       preterite: {
@@ -751,7 +745,6 @@ export const vocabulary = {
     {
       id: 'duerfen',
       infinitive: 'dürfen',
-      reflexive: 'no',
       english: 'to be allowed to / may',
       present: { ich: 'darf', du: 'darfst', erSieEs: 'darf', ihr: 'dürft' },
       preterite: {
@@ -766,7 +759,6 @@ export const vocabulary = {
     {
       id: 'sollen',
       infinitive: 'sollen',
-      reflexive: 'no',
       english: 'to be supposed to / should',
       present: { ich: 'soll', du: 'sollst', erSieEs: 'soll', ihr: 'sollt' },
       preterite: {
@@ -781,7 +773,6 @@ export const vocabulary = {
     {
       id: 'verdienen',
       infinitive: 'verdienen',
-      reflexive: 'no',
       english: 'to earn / deserve',
       present: {
         ich: 'verdiene',
@@ -796,7 +787,6 @@ export const vocabulary = {
     {
       id: 'betreuen',
       infinitive: 'betreuen',
-      reflexive: 'no',
       english: 'to look after / supervise',
       present: {
         ich: 'betreue',
@@ -811,7 +801,6 @@ export const vocabulary = {
     {
       id: 'teilnehmen',
       infinitive: 'teilnehmen',
-      reflexive: 'no',
       english: 'to participate / take part',
       present: {
         ich: 'nehme teil',
@@ -826,7 +815,6 @@ export const vocabulary = {
     {
       id: 'begründen',
       infinitive: 'begründen',
-      reflexive: 'no',
       english: 'to justify / give a reason for',
       present: {
         ich: 'begründe',
@@ -841,7 +829,6 @@ export const vocabulary = {
     {
       id: 'absagen',
       infinitive: 'absagen',
-      reflexive: 'no',
       english: 'to cancel / decline',
       present: {
         ich: 'sage ab',
@@ -858,7 +845,6 @@ export const vocabulary = {
     {
       id: 'wechseln',
       infinitive: 'wechseln',
-      reflexive: 'no',
       english: 'to change / switch',
       present: {
         ich: 'wechsle',
@@ -872,7 +858,6 @@ export const vocabulary = {
     {
       id: 'vergleichen',
       infinitive: 'vergleichen',
-      reflexive: 'no',
       english: 'to compare',
       present: {
         ich: 'vergleiche',
@@ -889,7 +874,6 @@ export const vocabulary = {
     {
       id: 'auswaehlen',
       infinitive: 'auswählen',
-      reflexive: 'no',
       english: 'to select / choose',
       present: {
         ich: 'wähle aus',
@@ -904,7 +888,6 @@ export const vocabulary = {
     {
       id: 'bereiten',
       infinitive: 'bereiten',
-      reflexive: 'no',
       english: 'to prepare / cause',
       present: {
         ich: 'bereite',
@@ -919,8 +902,11 @@ export const vocabulary = {
     {
       id: 'umziehen',
       infinitive: 'umziehen',
-      reflexive: 'sometimes',
       english: 'to move house',
+      alternateTranslation: {
+        german: 'sich umziehen',
+        english: 'to change clothes',
+      },
       present: {
         ich: 'ziehe um',
         du: 'ziehst um',
@@ -935,7 +921,6 @@ export const vocabulary = {
     {
       id: 'vorschlagen',
       infinitive: 'vorschlagen',
-      reflexive: 'no',
       english: 'to suggest / propose',
       present: {
         ich: 'schlage vor',
@@ -950,7 +935,6 @@ export const vocabulary = {
     {
       id: 'passieren',
       infinitive: 'passieren',
-      reflexive: 'no',
       english: 'to happen',
       present: {
         ich: 'passiere',
@@ -965,7 +949,6 @@ export const vocabulary = {
     {
       id: 'bekommen',
       infinitive: 'bekommen',
-      reflexive: 'no',
       english: 'to get / receive',
       present: {
         ich: 'bekomme',
@@ -980,7 +963,6 @@ export const vocabulary = {
     {
       id: 'raten',
       infinitive: 'raten',
-      reflexive: 'no',
       english: 'to advise / guess',
       present: { ich: 'rate', du: 'rätst', erSieEs: 'rät', ihr: 'ratet' },
       pastParticiple: 'geraten',
@@ -992,7 +974,6 @@ export const vocabulary = {
     {
       id: 'zusagen',
       infinitive: 'zusagen',
-      reflexive: 'no',
       english: 'to accept / agree',
       present: {
         ich: 'sage zu',
@@ -1007,7 +988,6 @@ export const vocabulary = {
     {
       id: 'anbieten',
       infinitive: 'anbieten',
-      reflexive: 'sometimes',
       english: 'to offer',
       present: {
         ich: 'biete an',
@@ -1022,7 +1002,6 @@ export const vocabulary = {
     {
       id: 'bestellen',
       infinitive: 'bestellen',
-      reflexive: 'no',
       english: 'to order',
       present: {
         ich: 'bestelle',
@@ -1037,7 +1016,6 @@ export const vocabulary = {
     {
       id: 'bringen',
       infinitive: 'bringen',
-      reflexive: 'no',
       english: 'to bring',
       present: {
         ich: 'bringe',
@@ -1052,7 +1030,6 @@ export const vocabulary = {
     {
       id: 'empfehlen',
       infinitive: 'empfehlen',
-      reflexive: 'sometimes',
       english: 'to recommend',
       present: {
         ich: 'empfehle',
@@ -1067,7 +1044,6 @@ export const vocabulary = {
     {
       id: 'erklaeren',
       infinitive: 'erklären',
-      reflexive: 'sometimes',
       english: 'to explain',
       present: {
         ich: 'erkläre',
@@ -1082,7 +1058,6 @@ export const vocabulary = {
     {
       id: 'erzaehlen',
       infinitive: 'erzählen',
-      reflexive: 'no',
       english: 'to tell / recount',
       present: {
         ich: 'erzähle',
@@ -1097,7 +1072,6 @@ export const vocabulary = {
     {
       id: 'geben',
       infinitive: 'geben',
-      reflexive: 'no',
       english: 'to give',
       present: { ich: 'gebe', du: 'gibst', erSieEs: 'gibt', ihr: 'gebt' },
       pastParticiple: 'gegeben',
@@ -1107,7 +1081,6 @@ export const vocabulary = {
     {
       id: 'holen',
       infinitive: 'holen',
-      reflexive: 'no',
       english: 'to fetch / get',
       present: { ich: 'hole', du: 'holst', erSieEs: 'holt', ihr: 'holt' },
       pastParticiple: 'geholt',
@@ -1117,7 +1090,6 @@ export const vocabulary = {
     {
       id: 'kaufen',
       infinitive: 'kaufen',
-      reflexive: 'no',
       english: 'to buy',
       present: { ich: 'kaufe', du: 'kaufst', erSieEs: 'kauft', ihr: 'kauft' },
       pastParticiple: 'gekauft',
@@ -1127,7 +1099,6 @@ export const vocabulary = {
     {
       id: 'kochen',
       infinitive: 'kochen',
-      reflexive: 'no',
       english: 'to cook',
       present: { ich: 'koche', du: 'kochst', erSieEs: 'kocht', ihr: 'kocht' },
       pastParticiple: 'gekocht',
@@ -1137,8 +1108,11 @@ export const vocabulary = {
     {
       id: 'leihen',
       infinitive: 'leihen',
-      reflexive: 'sometimes',
-      english: 'to lend / borrow',
+      english: 'to lend',
+      alternateTranslation: {
+        german: 'sich leihen',
+        english: 'to borrow',
+      },
       present: { ich: 'leihe', du: 'leihst', erSieEs: 'leiht', ihr: 'leiht' },
       pastParticiple: 'geliehen',
       auxiliary: 'hat',
@@ -1149,7 +1123,6 @@ export const vocabulary = {
     {
       id: 'liefern',
       infinitive: 'liefern',
-      reflexive: 'no',
       english: 'to deliver / supply',
       present: {
         ich: 'liefere',
@@ -1164,7 +1137,6 @@ export const vocabulary = {
     {
       id: 'mitbringen',
       infinitive: 'mitbringen',
-      reflexive: 'no',
       english: 'to bring along',
       present: {
         ich: 'bringe mit',
@@ -1179,7 +1151,6 @@ export const vocabulary = {
     {
       id: 'renovieren',
       infinitive: 'renovieren',
-      reflexive: 'no',
       english: 'to renovate',
       present: {
         ich: 'renoviere',
@@ -1194,7 +1165,6 @@ export const vocabulary = {
     {
       id: 'sagen',
       infinitive: 'sagen',
-      reflexive: 'no',
       english: 'to say / tell',
       present: { ich: 'sage', du: 'sagst', erSieEs: 'sagt', ihr: 'sagt' },
       pastParticiple: 'gesagt',
@@ -1204,7 +1174,6 @@ export const vocabulary = {
     {
       id: 'schenken',
       infinitive: 'schenken',
-      reflexive: 'no',
       english: 'to give as a gift',
       present: {
         ich: 'schenke',
@@ -1219,7 +1188,6 @@ export const vocabulary = {
     {
       id: 'schicken',
       infinitive: 'schicken',
-      reflexive: 'no',
       english: 'to send',
       present: {
         ich: 'schicke',
@@ -1234,7 +1202,6 @@ export const vocabulary = {
     {
       id: 'schneiden',
       infinitive: 'schneiden',
-      reflexive: 'no',
       english: 'to cut',
       present: {
         ich: 'schneide',
@@ -1249,7 +1216,6 @@ export const vocabulary = {
     {
       id: 'schreiben',
       infinitive: 'schreiben',
-      reflexive: 'no',
       english: 'to write',
       present: {
         ich: 'schreibe',
@@ -1264,7 +1230,6 @@ export const vocabulary = {
     {
       id: 'servieren',
       infinitive: 'servieren',
-      reflexive: 'no',
       english: 'to serve',
       present: {
         ich: 'serviere',
@@ -1279,7 +1244,6 @@ export const vocabulary = {
     {
       id: 'verkaufen',
       infinitive: 'verkaufen',
-      reflexive: 'no',
       english: 'to sell',
       present: {
         ich: 'verkaufe',
@@ -1294,7 +1258,6 @@ export const vocabulary = {
     {
       id: 'wuenschen',
       infinitive: 'wünschen',
-      reflexive: 'sometimes',
       english: 'to wish',
       present: {
         ich: 'wünsche',
@@ -1309,7 +1272,6 @@ export const vocabulary = {
     {
       id: 'zeigen',
       infinitive: 'zeigen',
-      reflexive: 'sometimes',
       english: 'to show',
       present: { ich: 'zeige', du: 'zeigst', erSieEs: 'zeigt', ihr: 'zeigt' },
       pastParticiple: 'gezeigt',
@@ -1319,7 +1281,6 @@ export const vocabulary = {
     {
       id: 'antworten',
       infinitive: 'antworten',
-      reflexive: 'no',
       english: 'to answer / reply',
       present: {
         ich: 'antworte',
@@ -1334,7 +1295,6 @@ export const vocabulary = {
     {
       id: 'fehlen',
       infinitive: 'fehlen',
-      reflexive: 'no',
       english: 'to be missing / lack',
       present: { ich: 'fehle', du: 'fehlst', erSieEs: 'fehlt', ihr: 'fehlt' },
       pastParticiple: 'gefehlt',
@@ -1345,7 +1305,6 @@ export const vocabulary = {
     {
       id: 'gefallen',
       infinitive: 'gefallen',
-      reflexive: 'no',
       english: 'to please / be pleasing to',
       present: {
         ich: 'gefalle',
@@ -1360,7 +1319,6 @@ export const vocabulary = {
     {
       id: 'gehen',
       infinitive: 'gehen',
-      reflexive: 'no',
       english: 'to go / walk',
       present: { ich: 'gehe', du: 'gehst', erSieEs: 'geht', ihr: 'geht' },
       pastParticiple: 'gegangen',
@@ -1369,7 +1327,6 @@ export const vocabulary = {
     {
       id: 'gehoeren',
       infinitive: 'gehören',
-      reflexive: 'no',
       english: 'to belong to',
       present: {
         ich: 'gehöre',
@@ -1384,7 +1341,6 @@ export const vocabulary = {
     {
       id: 'glauben',
       infinitive: 'glauben',
-      reflexive: 'no',
       english: 'to believe',
       present: {
         ich: 'glaube',
@@ -1401,7 +1357,6 @@ export const vocabulary = {
     {
       id: 'gratulieren',
       infinitive: 'gratulieren',
-      reflexive: 'no',
       english: 'to congratulate',
       present: {
         ich: 'gratuliere',
@@ -1416,7 +1371,6 @@ export const vocabulary = {
     {
       id: 'leidtun',
       infinitive: 'leidtun',
-      reflexive: 'no',
       english: 'to be sorry / cause sorrow',
       present: {
         ich: 'tue leid',
@@ -1432,7 +1386,6 @@ export const vocabulary = {
     {
       id: 'passen',
       infinitive: 'passen',
-      reflexive: 'no',
       english: 'to fit / suit',
       present: { ich: 'passe', du: 'passt', erSieEs: 'passt', ihr: 'passt' },
       pastParticiple: 'gepasst',
@@ -1442,7 +1395,6 @@ export const vocabulary = {
     {
       id: 'schmecken',
       infinitive: 'schmecken',
-      reflexive: 'no',
       english: 'to taste / taste good to',
       present: {
         ich: 'schmecke',
@@ -1457,7 +1409,6 @@ export const vocabulary = {
     {
       id: 'stehen',
       infinitive: 'stehen',
-      reflexive: 'no',
       english: 'to stand',
       present: { ich: 'stehe', du: 'stehst', erSieEs: 'steht', ihr: 'steht' },
       pastParticiple: 'gestanden',
@@ -1466,7 +1417,6 @@ export const vocabulary = {
     {
       id: 'wehtun',
       infinitive: 'wehtun',
-      reflexive: 'no',
       english: 'to hurt',
       present: {
         ich: 'tue weh',
@@ -1481,7 +1431,6 @@ export const vocabulary = {
     {
       id: 'zuhoeren',
       infinitive: 'zuhören',
-      reflexive: 'no',
       english: 'to listen to',
       present: {
         ich: 'höre zu',
@@ -1496,7 +1445,6 @@ export const vocabulary = {
     {
       id: 'weiterleiten',
       infinitive: 'weiterleiten',
-      reflexive: 'no',
       english: 'to forward / pass on',
       present: {
         ich: 'leite weiter',
@@ -1511,7 +1459,6 @@ export const vocabulary = {
     {
       id: 'speichern',
       infinitive: 'speichern',
-      reflexive: 'no',
       english: 'to save / store',
       present: {
         ich: 'speichere',
@@ -1526,7 +1473,6 @@ export const vocabulary = {
     {
       id: 'loeschen',
       infinitive: 'löschen',
-      reflexive: 'no',
       english: 'to delete / extinguish',
       present: {
         ich: 'lösche',
@@ -1541,7 +1487,6 @@ export const vocabulary = {
     {
       id: 'diskutieren',
       infinitive: 'diskutieren',
-      reflexive: 'no',
       english: 'to discuss',
       present: {
         ich: 'diskutiere',
@@ -1557,7 +1502,6 @@ export const vocabulary = {
     {
       id: 'finden',
       infinitive: 'finden',
-      reflexive: 'no',
       english: 'to find / consider',
       present: {
         ich: 'finde',
@@ -1572,7 +1516,6 @@ export const vocabulary = {
     {
       id: 'wissen',
       infinitive: 'wissen',
-      reflexive: 'no',
       english: 'to know',
       present: { ich: 'weiß', du: 'weißt', erSieEs: 'weiß', ihr: 'wisst' },
       pastParticiple: 'gewusst',
@@ -1582,7 +1525,6 @@ export const vocabulary = {
     {
       id: 'verstehen',
       infinitive: 'verstehen',
-      reflexive: 'sometimes',
       english: 'to understand',
       present: {
         ich: 'verstehe',
@@ -1597,7 +1539,6 @@ export const vocabulary = {
     {
       id: 'entdecken',
       infinitive: 'entdecken',
-      reflexive: 'no',
       english: 'to discover',
       present: {
         ich: 'entdecke',
@@ -1612,7 +1553,6 @@ export const vocabulary = {
     {
       id: 'empfangen',
       infinitive: 'empfangen',
-      reflexive: 'no',
       english: 'to receive / welcome',
       present: {
         ich: 'empfange',
@@ -1627,7 +1567,6 @@ export const vocabulary = {
     {
       id: 'gruenden',
       infinitive: 'gründen',
-      reflexive: 'no',
       english: 'to found / establish',
       present: {
         ich: 'gründe',
@@ -1642,7 +1581,6 @@ export const vocabulary = {
     {
       id: 'nerven',
       infinitive: 'nerven',
-      reflexive: 'no',
       english: 'to annoy',
       present: { ich: 'nerve', du: 'nervst', erSieEs: 'nervt', ihr: 'nervt' },
       pastParticiple: 'genervt',
@@ -1652,7 +1590,6 @@ export const vocabulary = {
     {
       id: 'hochladen',
       infinitive: 'hochladen',
-      reflexive: 'no',
       english: 'to upload',
       present: {
         ich: 'lade hoch',
@@ -1667,7 +1604,6 @@ export const vocabulary = {
     {
       id: 'merken',
       infinitive: 'merken',
-      reflexive: 'sometimes',
       english: 'to notice / remember',
       present: { ich: 'merke', du: 'merkst', erSieEs: 'merkt', ihr: 'merkt' },
       pastParticiple: 'gemerkt',
@@ -1677,7 +1613,6 @@ export const vocabulary = {
     {
       id: 'sterben',
       infinitive: 'sterben',
-      reflexive: 'no',
       english: 'to die',
       present: {
         ich: 'sterbe',
@@ -1691,7 +1626,6 @@ export const vocabulary = {
     {
       id: 'schmuecken',
       infinitive: 'schmücken',
-      reflexive: 'no',
       english: 'to decorate / adorn',
       present: {
         ich: 'schmücke',
@@ -1706,7 +1640,6 @@ export const vocabulary = {
     {
       id: 'benutzen',
       infinitive: 'benutzen',
-      reflexive: 'no',
       english: 'to use',
       present: {
         ich: 'benutze',
@@ -1721,7 +1654,6 @@ export const vocabulary = {
     {
       id: 'entscheiden',
       infinitive: 'entscheiden',
-      reflexive: 'sometimes',
       english: 'to decide',
       present: {
         ich: 'entscheide',
@@ -1738,7 +1670,6 @@ export const vocabulary = {
     {
       id: 'schaffen',
       infinitive: 'schaffen',
-      reflexive: 'no',
       english: 'to manage / accomplish',
       present: {
         ich: 'schaffe',
@@ -1753,7 +1684,6 @@ export const vocabulary = {
     {
       id: 'werben',
       infinitive: 'werben',
-      reflexive: 'no',
       english: 'to advertise / recruit',
       present: { ich: 'werbe', du: 'wirbst', erSieEs: 'wirbt', ihr: 'werbt' },
       pastParticiple: 'geworben',
@@ -1763,7 +1693,6 @@ export const vocabulary = {
     {
       id: 'ablehnen',
       infinitive: 'ablehnen',
-      reflexive: 'no',
       english: 'to reject / decline',
       present: {
         ich: 'lehne ab',
@@ -1778,7 +1707,6 @@ export const vocabulary = {
     {
       id: 'zustimmen',
       infinitive: 'zustimmen',
-      reflexive: 'no',
       english: 'to agree with / approve',
       present: {
         ich: 'stimme zu',
@@ -1793,7 +1721,6 @@ export const vocabulary = {
     {
       id: 'verlieren',
       infinitive: 'verlieren',
-      reflexive: 'no',
       english: 'to lose',
       present: {
         ich: 'verliere',
@@ -1809,7 +1736,6 @@ export const vocabulary = {
     {
       id: 'abtrocknen',
       infinitive: 'abtrocknen',
-      reflexive: 'sometimes',
       english: 'to dry off / dry',
       present: {
         ich: 'trockne ab',
@@ -1825,7 +1751,6 @@ export const vocabulary = {
     {
       id: 'anmelden',
       infinitive: 'anmelden',
-      reflexive: 'sometimes',
       english: 'to register / sign up',
       present: {
         ich: 'melde an',
@@ -1841,8 +1766,11 @@ export const vocabulary = {
     {
       id: 'anstrengen',
       infinitive: 'anstrengen',
-      reflexive: 'sometimes',
       english: 'to exert / strain',
+      alternateTranslation: {
+        german: 'sich anstrengen',
+        english: 'to make an effort',
+      },
       present: {
         ich: 'strenge an',
         du: 'strengst an',
@@ -1857,7 +1785,6 @@ export const vocabulary = {
     {
       id: 'anziehen',
       infinitive: 'anziehen',
-      reflexive: 'sometimes',
       english: 'to put on / attract',
       present: {
         ich: 'ziehe an',
@@ -1873,8 +1800,11 @@ export const vocabulary = {
     {
       id: 'auflegen',
       infinitive: 'auflegen',
-      reflexive: 'sometimes',
       english: 'to put down / hang up',
+      alternateTranslation: {
+        german: 'sich auflegen',
+        english: 'to impose on oneself',
+      },
       present: {
         ich: 'lege auf',
         du: 'legst auf',
@@ -1889,8 +1819,11 @@ export const vocabulary = {
     {
       id: 'aufregen',
       infinitive: 'aufregen',
-      reflexive: 'sometimes',
-      english: 'to upset / get upset',
+      english: 'to upset',
+      alternateTranslation: {
+        german: 'sich aufregen',
+        english: 'to get upset',
+      },
       present: {
         ich: 'rege auf',
         du: 'regst auf',
@@ -1905,7 +1838,6 @@ export const vocabulary = {
     {
       id: 'ausruhen',
       infinitive: 'ausruhen',
-      reflexive: 'sometimes',
       english: 'to rest / relax',
       present: {
         ich: 'ruhe aus',
@@ -1920,8 +1852,8 @@ export const vocabulary = {
     {
       id: 'bedanken',
       infinitive: 'bedanken',
-      reflexive: 'always',
       english: 'to thank / express thanks',
+      translationGerman: 'sich bedanken',
       present: {
         ich: 'bedanke',
         du: 'bedankst',
@@ -1936,8 +1868,8 @@ export const vocabulary = {
     {
       id: 'beeilen',
       infinitive: 'beeilen',
-      reflexive: 'always',
       english: 'to hurry',
+      translationGerman: 'sich beeilen',
       present: {
         ich: 'beeile',
         du: 'beeilst',
@@ -1951,8 +1883,11 @@ export const vocabulary = {
     {
       id: 'befinden',
       infinitive: 'befinden',
-      reflexive: 'sometimes',
-      english: 'to be located / consider',
+      english: 'to consider / find',
+      alternateTranslation: {
+        german: 'sich befinden',
+        english: 'to be located',
+      },
       present: {
         ich: 'befinde',
         du: 'befindest',
@@ -1968,7 +1903,6 @@ export const vocabulary = {
     {
       id: 'begegnen',
       infinitive: 'begegnen',
-      reflexive: 'sometimes',
       english: 'to encounter / meet',
       present: {
         ich: 'begegne',
@@ -1985,8 +1919,11 @@ export const vocabulary = {
     {
       id: 'beschweren',
       infinitive: 'beschweren',
-      reflexive: 'sometimes',
-      english: 'to complain / burden',
+      english: 'to burden / weigh down',
+      alternateTranslation: {
+        german: 'sich beschweren',
+        english: 'to complain',
+      },
       present: {
         ich: 'beschwere',
         du: 'beschwerst',
@@ -2001,8 +1938,11 @@ export const vocabulary = {
     {
       id: 'bewerben',
       infinitive: 'bewerben',
-      reflexive: 'sometimes',
-      english: 'to apply / advertise',
+      english: 'to advertise / promote',
+      alternateTranslation: {
+        german: 'sich bewerben',
+        english: 'to apply',
+      },
       present: {
         ich: 'bewerbe',
         du: 'bewirbst',
@@ -2017,7 +1957,6 @@ export const vocabulary = {
     {
       id: 'bewegen',
       infinitive: 'bewegen',
-      reflexive: 'sometimes',
       english: 'to move',
       present: {
         ich: 'bewege',
@@ -2033,8 +1972,8 @@ export const vocabulary = {
     {
       id: 'buecken',
       infinitive: 'bücken',
-      reflexive: 'always',
       english: 'to bend down / stoop',
+      translationGerman: 'sich bücken',
       present: {
         ich: 'bücke',
         du: 'bückst',
@@ -2048,7 +1987,6 @@ export const vocabulary = {
     {
       id: 'duschen',
       infinitive: 'duschen',
-      reflexive: 'sometimes',
       english: 'to shower / wash',
       present: {
         ich: 'dusche',
@@ -2064,8 +2002,11 @@ export const vocabulary = {
     {
       id: 'erinnern',
       infinitive: 'erinnern',
-      reflexive: 'sometimes',
-      english: 'to remember / remind',
+      english: 'to remind',
+      alternateTranslation: {
+        german: 'sich erinnern',
+        english: 'to remember',
+      },
       present: {
         ich: 'erinnere',
         du: 'erinnerst',
@@ -2080,8 +2021,8 @@ export const vocabulary = {
     {
       id: 'erholen',
       infinitive: 'erholen',
-      reflexive: 'always',
       english: 'to recover / relax',
+      translationGerman: 'sich erholen',
       present: {
         ich: 'erhole',
         du: 'erholst',
@@ -2095,8 +2036,11 @@ export const vocabulary = {
     {
       id: 'erkaelten',
       infinitive: 'erkälten',
-      reflexive: 'sometimes',
-      english: 'to catch a cold / chill',
+      english: 'to chill',
+      alternateTranslation: {
+        german: 'sich erkälten',
+        english: 'to catch a cold',
+      },
       present: {
         ich: 'erkälte',
         du: 'erkältest',
@@ -2111,8 +2055,8 @@ export const vocabulary = {
     {
       id: 'erkundigen',
       infinitive: 'erkundigen',
-      reflexive: 'always',
       english: 'to inquire / find out',
+      translationGerman: 'sich erkundigen',
       present: {
         ich: 'erkundige',
         du: 'erkundigst',
@@ -2126,8 +2070,11 @@ export const vocabulary = {
     {
       id: 'entschuldigen',
       infinitive: 'entschuldigen',
-      reflexive: 'sometimes',
-      english: 'to apologize / excuse',
+      english: 'to excuse',
+      alternateTranslation: {
+        german: 'sich entschuldigen',
+        english: 'to apologize',
+      },
       present: {
         ich: 'entschuldige',
         du: 'entschuldigst',
@@ -2142,7 +2089,6 @@ export const vocabulary = {
     {
       id: 'foehnen',
       infinitive: 'föhnen',
-      reflexive: 'sometimes',
       english: 'to blow-dry',
       present: {
         ich: 'föhne',
@@ -2158,8 +2104,11 @@ export const vocabulary = {
     {
       id: 'fragen',
       infinitive: 'fragen',
-      reflexive: 'sometimes',
-      english: 'to ask / wonder',
+      english: 'to ask',
+      alternateTranslation: {
+        german: 'sich fragen',
+        english: 'to wonder',
+      },
       present: {
         ich: 'frage',
         du: 'fragst',
@@ -2174,8 +2123,11 @@ export const vocabulary = {
     {
       id: 'freuen',
       infinitive: 'freuen',
-      reflexive: 'sometimes',
-      english: 'to please / look forward to',
+      english: 'to please / delight',
+      alternateTranslation: {
+        german: 'sich freuen',
+        english: 'to be pleased / look forward to',
+      },
       present: {
         ich: 'freue',
         du: 'freust',
@@ -2190,7 +2142,6 @@ export const vocabulary = {
     {
       id: 'fuehlen',
       infinitive: 'fühlen',
-      reflexive: 'sometimes',
       english: 'to feel',
       present: {
         ich: 'fühle',
@@ -2206,7 +2157,6 @@ export const vocabulary = {
     {
       id: 'fuerchten',
       infinitive: 'fürchten',
-      reflexive: 'sometimes',
       english: 'to fear',
       present: {
         ich: 'fürchte',
@@ -2222,8 +2172,11 @@ export const vocabulary = {
     {
       id: 'gewoehnen',
       infinitive: 'gewöhnen',
-      reflexive: 'sometimes',
-      english: 'to accustom / get used to',
+      english: 'to accustom',
+      alternateTranslation: {
+        german: 'sich gewöhnen',
+        english: 'to get used to',
+      },
       present: {
         ich: 'gewöhne',
         du: 'gewöhnst',
@@ -2238,8 +2191,11 @@ export const vocabulary = {
     {
       id: 'interessieren',
       infinitive: 'interessieren',
-      reflexive: 'sometimes',
-      english: 'to interest / be interested',
+      english: 'to interest',
+      alternateTranslation: {
+        german: 'sich interessieren',
+        english: 'to be interested',
+      },
       present: {
         ich: 'interessiere',
         du: 'interessierst',
@@ -2254,7 +2210,6 @@ export const vocabulary = {
     {
       id: 'kaemmen',
       infinitive: 'kämmen',
-      reflexive: 'sometimes',
       english: 'to comb',
       present: {
         ich: 'kämme',
@@ -2270,7 +2225,6 @@ export const vocabulary = {
     {
       id: 'konzentrieren',
       infinitive: 'konzentrieren',
-      reflexive: 'sometimes',
       english: 'to concentrate / focus',
       present: {
         ich: 'konzentriere',
@@ -2286,8 +2240,11 @@ export const vocabulary = {
     {
       id: 'kuemmern',
       infinitive: 'kümmern',
-      reflexive: 'sometimes',
-      english: 'to care for / concern',
+      english: 'to concern',
+      alternateTranslation: {
+        german: 'sich kümmern',
+        english: 'to care for',
+      },
       present: {
         ich: 'kümmere',
         du: 'kümmerst',
@@ -2302,8 +2259,11 @@ export const vocabulary = {
     {
       id: 'lassen',
       infinitive: 'lassen',
-      reflexive: 'sometimes',
       english: 'to let / leave',
+      alternateTranslation: {
+        german: 'sich gefallen lassen',
+        english: 'to put up with / tolerate',
+      },
       present: {
         ich: 'lasse',
         du: 'lässt',
@@ -2318,8 +2278,11 @@ export const vocabulary = {
     {
       id: 'legen',
       infinitive: 'legen',
-      reflexive: 'sometimes',
       english: 'to lay / put',
+      alternateTranslation: {
+        german: 'sich legen',
+        english: 'to subside / settle',
+      },
       present: {
         ich: 'lege',
         du: 'legst',
@@ -2335,8 +2298,8 @@ export const vocabulary = {
     {
       id: 'naehern',
       infinitive: 'nähern',
-      reflexive: 'always',
       english: 'to approach / draw near',
+      translationGerman: 'sich nähern',
       present: {
         ich: 'nähere',
         du: 'näherst',
@@ -2351,7 +2314,6 @@ export const vocabulary = {
     {
       id: 'nennen',
       infinitive: 'nennen',
-      reflexive: 'sometimes',
       english: 'to name / call',
       present: {
         ich: 'nenne',
@@ -2367,7 +2329,6 @@ export const vocabulary = {
     {
       id: 'rasieren',
       infinitive: 'rasieren',
-      reflexive: 'sometimes',
       english: 'to shave',
       present: {
         ich: 'rasiere',
@@ -2383,8 +2344,8 @@ export const vocabulary = {
     {
       id: 'schaemen',
       infinitive: 'schämen',
-      reflexive: 'always',
       english: 'to be ashamed',
+      translationGerman: 'sich schämen',
       present: {
         ich: 'schäme',
         du: 'schämst',
@@ -2398,7 +2359,6 @@ export const vocabulary = {
     {
       id: 'schminken',
       infinitive: 'schminken',
-      reflexive: 'sometimes',
       english: 'to apply makeup',
       present: {
         ich: 'schminke',
@@ -2414,8 +2374,11 @@ export const vocabulary = {
     {
       id: 'setzen',
       infinitive: 'setzen',
-      reflexive: 'sometimes',
       english: 'to set / seat',
+      alternateTranslation: {
+        german: 'sich setzen',
+        english: 'to sit down',
+      },
       present: {
         ich: 'setze',
         du: 'setzt',
@@ -2430,7 +2393,6 @@ export const vocabulary = {
     {
       id: 'sonnen',
       infinitive: 'sonnen',
-      reflexive: 'sometimes',
       english: 'to sunbathe / expose to sun',
       present: {
         ich: 'sonne',
@@ -2446,7 +2408,6 @@ export const vocabulary = {
     {
       id: 'streiten',
       infinitive: 'streiten',
-      reflexive: 'sometimes',
       english: 'to argue / dispute',
       present: {
         ich: 'streite',
@@ -2462,7 +2423,6 @@ export const vocabulary = {
     {
       id: 'treffen',
       infinitive: 'treffen',
-      reflexive: 'sometimes',
       english: 'to meet / hit',
       present: {
         ich: 'treffe',
@@ -2478,7 +2438,6 @@ export const vocabulary = {
     {
       id: 'umdrehen',
       infinitive: 'umdrehen',
-      reflexive: 'sometimes',
       english: 'to turn around / turn over',
       present: {
         ich: 'drehe um',
@@ -2494,8 +2453,11 @@ export const vocabulary = {
     {
       id: 'unterhalten',
       infinitive: 'unterhalten',
-      reflexive: 'sometimes',
-      english: 'to entertain / converse',
+      english: 'to entertain / maintain',
+      alternateTranslation: {
+        german: 'sich unterhalten',
+        english: 'to converse',
+      },
       present: {
         ich: 'unterhalte',
         du: 'unterhältst',
@@ -2510,8 +2472,11 @@ export const vocabulary = {
     {
       id: 'verabschieden',
       infinitive: 'verabschieden',
-      reflexive: 'sometimes',
-      english: 'to say goodbye / pass',
+      english: 'to pass / adopt',
+      alternateTranslation: {
+        german: 'sich verabschieden',
+        english: 'to say goodbye',
+      },
       present: {
         ich: 'verabschiede',
         du: 'verabschiedest',
@@ -2526,7 +2491,6 @@ export const vocabulary = {
     {
       id: 'verletzen',
       infinitive: 'verletzen',
-      reflexive: 'sometimes',
       english: 'to injure / violate',
       present: {
         ich: 'verletze',
@@ -2542,8 +2506,8 @@ export const vocabulary = {
     {
       id: 'verlieben',
       infinitive: 'verlieben',
-      reflexive: 'always',
       english: 'to fall in love',
+      translationGerman: 'sich verlieben',
       present: {
         ich: 'verliebe',
         du: 'verliebst',
@@ -2557,7 +2521,6 @@ export const vocabulary = {
     {
       id: 'verteidigen',
       infinitive: 'verteidigen',
-      reflexive: 'sometimes',
       english: 'to defend',
       present: {
         ich: 'verteidige',
@@ -2573,7 +2536,6 @@ export const vocabulary = {
     {
       id: 'vorbereiten',
       infinitive: 'vorbereiten',
-      reflexive: 'sometimes',
       english: 'to prepare',
       present: {
         ich: 'bereite vor',
@@ -2589,7 +2551,6 @@ export const vocabulary = {
     {
       id: 'waschen',
       infinitive: 'waschen',
-      reflexive: 'sometimes',
       english: 'to wash',
       present: {
         ich: 'wasche',
@@ -2605,7 +2566,6 @@ export const vocabulary = {
     {
       id: 'wiegen',
       infinitive: 'wiegen',
-      reflexive: 'no',
       english: 'to weigh',
       present: {
         ich: 'wiege',
@@ -2622,8 +2582,11 @@ export const vocabulary = {
     {
       id: 'wundern',
       infinitive: 'wundern',
-      reflexive: 'sometimes',
-      english: 'to wonder / surprise',
+      english: 'to surprise',
+      alternateTranslation: {
+        german: 'sich wundern',
+        english: 'to wonder',
+      },
       present: {
         ich: 'wundere',
         du: 'wunderst',
@@ -2638,7 +2601,6 @@ export const vocabulary = {
     {
       id: 'aendern',
       infinitive: 'ändern',
-      reflexive: 'sometimes',
       english: 'to change / alter',
       present: {
         ich: 'ändere',
@@ -2654,8 +2616,11 @@ export const vocabulary = {
     {
       id: 'aergern',
       infinitive: 'ärgern',
-      reflexive: 'sometimes',
-      english: 'to annoy / get annoyed',
+      english: 'to annoy',
+      alternateTranslation: {
+        german: 'sich ärgern',
+        english: 'to get annoyed',
+      },
       present: {
         ich: 'ärgere',
         du: 'ärgerst',
@@ -2670,7 +2635,6 @@ export const vocabulary = {
     {
       id: 'waehlen',
       infinitive: 'wählen',
-      reflexive: 'no',
       english: 'to choose / elect',
       present: {
         ich: 'wähle',
@@ -2685,7 +2649,6 @@ export const vocabulary = {
     {
       id: 'reagieren',
       infinitive: 'reagieren',
-      reflexive: 'no',
       english: 'to react / respond',
       present: {
         ich: 'reagiere',
@@ -2700,7 +2663,6 @@ export const vocabulary = {
     {
       id: 'teilen',
       infinitive: 'teilen',
-      reflexive: 'sometimes',
       english: 'to share / divide',
       present: {
         ich: 'teile',
@@ -2716,7 +2678,6 @@ export const vocabulary = {
     {
       id: 'ausprobieren',
       infinitive: 'ausprobieren',
-      reflexive: 'no',
       english: 'to try out / test',
       present: {
         ich: 'probiere aus',
@@ -2731,7 +2692,6 @@ export const vocabulary = {
     {
       id: 'bieten',
       infinitive: 'bieten',
-      reflexive: 'sometimes',
       english: 'to offer / provide',
       present: {
         ich: 'biete',
@@ -2747,7 +2707,6 @@ export const vocabulary = {
     {
       id: 'kritisieren',
       infinitive: 'kritisieren',
-      reflexive: 'no',
       english: 'to criticize',
       present: {
         ich: 'kritisiere',
@@ -2762,7 +2721,6 @@ export const vocabulary = {
     {
       id: 'achten',
       infinitive: 'achten',
-      reflexive: 'no',
       english: 'to pay attention to / respect',
       present: {
         ich: 'achte',
@@ -2778,7 +2736,6 @@ export const vocabulary = {
     {
       id: 'ausdruecken',
       infinitive: 'ausdrücken',
-      reflexive: 'sometimes',
       english: 'to express / squeeze out',
       present: {
         ich: 'drücke aus',
@@ -2794,7 +2751,6 @@ export const vocabulary = {
     {
       id: 'bedauern',
       infinitive: 'bedauern',
-      reflexive: 'no',
       english: 'to regret',
       present: {
         ich: 'bedauere',
@@ -2809,7 +2765,6 @@ export const vocabulary = {
     {
       id: 'beruhigen',
       infinitive: 'beruhigen',
-      reflexive: 'sometimes',
       english: 'to calm / reassure',
       present: {
         ich: 'beruhige',
@@ -2825,7 +2780,6 @@ export const vocabulary = {
     {
       id: 'unterrichten',
       infinitive: 'unterrichten',
-      reflexive: 'sometimes',
       english: 'to teach / inform',
       present: {
         ich: 'unterrichte',
@@ -2841,7 +2795,6 @@ export const vocabulary = {
     {
       id: 'mitmachen',
       infinitive: 'mitmachen',
-      reflexive: 'no',
       english: 'to participate / join in',
       present: {
         ich: 'mache mit',
@@ -2855,7 +2808,6 @@ export const vocabulary = {
     {
       id: 'bestehen',
       infinitive: 'bestehen',
-      reflexive: 'no',
       english: 'to pass / exist / consist',
       present: {
         ich: 'bestehe',
@@ -2870,8 +2822,11 @@ export const vocabulary = {
     {
       id: 'austauschen',
       infinitive: 'austauschen',
-      reflexive: 'sometimes',
       english: 'to exchange / replace',
+      alternateTranslation: {
+        german: 'sich austauschen',
+        english: 'to exchange views',
+      },
       present: {
         ich: 'tausche aus',
         du: 'tauschst aus',
@@ -2886,7 +2841,6 @@ export const vocabulary = {
     {
       id: 'erleben',
       infinitive: 'erleben',
-      reflexive: 'no',
       english: 'to experience',
       present: {
         ich: 'erlebe',
@@ -2901,7 +2855,6 @@ export const vocabulary = {
     {
       id: 'pflegen',
       infinitive: 'pflegen',
-      reflexive: 'no',
       english: 'to care for / maintain',
       present: {
         ich: 'pflege',
@@ -2916,7 +2869,6 @@ export const vocabulary = {
     {
       id: 'verlaengern',
       infinitive: 'verlängern',
-      reflexive: 'sometimes',
       english: 'to extend / renew',
       present: {
         ich: 'verlängere',
@@ -2932,7 +2884,6 @@ export const vocabulary = {
     {
       id: 'beantragen',
       infinitive: 'beantragen',
-      reflexive: 'no',
       english: 'to apply for / request',
       present: {
         ich: 'beantrage',
@@ -2947,7 +2898,6 @@ export const vocabulary = {
     {
       id: 'genehmigen',
       infinitive: 'genehmigen',
-      reflexive: 'no',
       english: 'to approve / authorize',
       present: {
         ich: 'genehmige',
@@ -2962,8 +2912,11 @@ export const vocabulary = {
     {
       id: 'sperren',
       infinitive: 'sperren',
-      reflexive: 'sometimes',
       english: 'to block / lock',
+      alternateTranslation: {
+        german: 'sich sperren',
+        english: 'to resist / refuse',
+      },
       present: {
         ich: 'sperre',
         du: 'sperrst',
@@ -2978,7 +2931,6 @@ export const vocabulary = {
     {
       id: 'bereuen',
       infinitive: 'bereuen',
-      reflexive: 'no',
       english: 'to regret',
       present: {
         ich: 'bereue',
@@ -2993,7 +2945,6 @@ export const vocabulary = {
     {
       id: 'laecheln',
       infinitive: 'lächeln',
-      reflexive: 'no',
       english: 'to smile',
       present: {
         ich: 'lächle',
@@ -3007,8 +2958,11 @@ export const vocabulary = {
     {
       id: 'stoeren',
       infinitive: 'stören',
-      reflexive: 'sometimes',
       english: 'to disturb / bother',
+      alternateTranslation: {
+        german: 'sich stören',
+        english: 'to object / be bothered',
+      },
       present: {
         ich: 'störe',
         du: 'störst',
@@ -3023,7 +2977,6 @@ export const vocabulary = {
     {
       id: 'hinterlassen',
       infinitive: 'hinterlassen',
-      reflexive: 'no',
       english: 'to leave behind',
       present: {
         ich: 'hinterlasse',
@@ -3038,7 +2991,6 @@ export const vocabulary = {
     {
       id: 'ausrichten',
       infinitive: 'ausrichten',
-      reflexive: 'sometimes',
       english: 'to convey / align / organize',
       present: {
         ich: 'richte aus',

@@ -54,6 +54,13 @@ const bareVerbInfinitive = (infinitive: string) =>
   infinitive.trim().replace(/^sich\s+/i, '');
 const wordWithEnglish = (word: string, english: string) =>
   `“${word}” (${english})`;
+const verbTranslations = (verb: Verb) => [
+  {
+    german: verb.translationGerman ?? verb.infinitive,
+    english: verb.english,
+  },
+  ...(verb.alternateTranslation ? [verb.alternateTranslation] : []),
+];
 
 const questionFacet = (id: string) => {
   const person = id.match(
@@ -67,7 +74,6 @@ const questionFacet = (id: string) => {
       'plural',
       'participle',
       'auxiliary',
-      'reflexive',
       'case',
       'category',
       'movement',
@@ -140,30 +146,6 @@ const specialVerbQuestions = (
   excludedQuestionKeys: ReadonlySet<string>,
 ): RawQuizQuestion[] => {
   const questions: RawQuizQuestion[] = [];
-  if (verb.reflexive === 'always' || verb.reflexive === 'sometimes') {
-    const options = verbChoiceOptions(
-      verb,
-      pool,
-      (candidate) =>
-        candidate.reflexive !== undefined &&
-        candidate.reflexive !== '' &&
-        candidate.reflexive !== verb.reflexive,
-      random,
-    );
-    if (options)
-      questions.push({
-        id: `${verb.id}-reflexive`,
-        wordId: verb.id,
-        wordType: 'verb',
-        word: verb.infinitive,
-        eyebrow: 'Verb · reflexive',
-        prompt: `Which of these verbs is ${verb.reflexive.toUpperCase()} reflexive?`,
-        mode: 'choice',
-        correctAnswer: bareVerbInfinitive(verb.infinitive),
-        options,
-        notes: verb.notes,
-      });
-  }
   if (verb.auxiliary === 'ist') {
     const options = verbChoiceOptions(
       verb,
@@ -363,6 +345,7 @@ const adjectiveAdverbBlock = (
 const verbBlock = (
   verb: Verb,
   pool: readonly Verb[],
+  translationPool: readonly { english: string }[],
   random: () => number,
   excludedQuestionKeys: ReadonlySet<string>,
 ): RawQuizQuestion[] => {
@@ -378,18 +361,41 @@ const verbBlock = (
       id: `${verb.id}-translation`,
       wordId: verb.id,
       wordType: 'verb',
-      word: verb.infinitive,
+      word: verb.translationGerman ?? verb.infinitive,
       eyebrow: 'Verb · meaning',
-      prompt: `What does “${verb.infinitive}” mean?`,
+      prompt: `What does “${verb.translationGerman ?? verb.infinitive}” mean?`,
       mode: 'choice',
       correctAnswer: verb.english,
-      options: translationOptions(verb.english, pool, random),
+      options: translationOptions(verb.english, translationPool, random),
       notes: verb.notes,
     },
     ...verbCandidates(verb, random, excludedQuestionKeys).slice(
       0,
       special.length ? 2 : 3,
     ),
+  ];
+};
+
+const alternateVerbTranslationBlock = (
+  verb: Verb,
+  translationPool: readonly { english: string }[],
+  random: () => number,
+): RawQuizQuestion[] => {
+  const alternate = verb.alternateTranslation;
+  if (!alternate) return [];
+  return [
+    {
+      id: `${verb.id}-alternate-translation`,
+      wordId: verb.id,
+      wordType: 'verb',
+      word: alternate.german,
+      eyebrow: 'Verb · meaning',
+      prompt: `What does “${alternate.german}” mean?`,
+      mode: 'choice',
+      correctAnswer: alternate.english,
+      options: translationOptions(alternate.english, translationPool, random),
+      notes: verb.notes,
+    },
   ];
 };
 
@@ -466,12 +472,27 @@ export const createQuiz = (
   random: () => number = Math.random,
   excludedQuestionKeys: ReadonlySet<string> = new Set(),
 ): QuizQuestion[] => {
+  const verbTranslationPool = source.verbs.flatMap(verbTranslations);
   const blocks = shuffle(
     [
       ...source.nouns.map((noun) => nounBlock(noun, source.nouns, random)),
       ...source.verbs.map((verb) =>
-        verbBlock(verb, source.verbs, random, excludedQuestionKeys),
+        verbBlock(
+          verb,
+          source.verbs,
+          verbTranslationPool,
+          random,
+          excludedQuestionKeys,
+        ),
       ),
+      ...source.verbs.flatMap((verb) => {
+        const alternate = alternateVerbTranslationBlock(
+          verb,
+          verbTranslationPool,
+          random,
+        );
+        return alternate.length ? [alternate] : [];
+      }),
       ...source.prepositions.flatMap((preposition) =>
         prepositionBlock(preposition, random).map((question) => [question]),
       ),

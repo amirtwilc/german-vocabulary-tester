@@ -54,6 +54,26 @@ describe('saved quiz sessions', () => {
     expect(loadQuizSession()).toBeNull();
   });
 
+  it('rejects a saved quiz containing a removed reflexive question', () => {
+    const quiz = session('reflexive');
+    startQuizSession(quiz);
+    window.localStorage.setItem(
+      `${QUIZ_QUESTIONS_STORAGE_PREFIX}reflexive`,
+      JSON.stringify({
+        version: 2,
+        id: 'reflexive',
+        questions: [
+          {
+            ...quiz.questions[0],
+            questionKey: 'v1:verb:beeilen:reflexive',
+          },
+          ...quiz.questions.slice(1),
+        ],
+      }),
+    );
+    expect(loadQuizSession()).toBeNull();
+  });
+
   it('migrates an existing unsplit checkpoint', () => {
     const old = session('old');
     window.localStorage.setItem(
